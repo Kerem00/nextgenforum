@@ -1,0 +1,38 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  users_db:
+    image: postgres:15
+    container_name: users_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: users_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - users_db_data:/var/lib/postgresql/data
+
+  posts_db:
+    image: postgres:15
+    container_name: posts_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: posts_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - posts_db_data:/var/lib/postgresql/data
+
+volumes:
+  users_db_data:
+  posts_db_data:
