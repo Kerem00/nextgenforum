@@ -1,0 +1,5 @@
+asyncmy
+asyncpg
+matplotlib
+pandas
+cryptography

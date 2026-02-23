@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_benchmark
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: benchmark_db
+      MYSQL_USER: benchmark_user
+      MYSQL_PASSWORD: benchmark_password
+    ports:
+      - "3306:3306"
+    tmpfs:
+      - /var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  postgres_db:
+    image: postgres:14
+    container_name: postgres_benchmark
+    environment:
+      POSTGRES_USER: benchmark_user
+      POSTGRES_PASSWORD: benchmark_password
+      POSTGRES_DB: benchmark_db
+    ports:
+      - "5432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
