@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordRequestForm
 from . import models, schemas, database, producer, auth
 
+from fastapi.middleware.cors import CORSMiddleware
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with database.engine.begin() as conn:
@@ -14,6 +16,14 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/users", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(database.get_db)):

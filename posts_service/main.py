@@ -6,6 +6,8 @@ import asyncio
 from typing import Annotated
 from . import models, schemas, database, consumer, auth
 
+from fastapi.middleware.cors import CORSMiddleware
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create tables
@@ -20,6 +22,14 @@ async def lifespan(app: FastAPI):
     # Cleanup if needed (task.cancel() etc)
 
 app = FastAPI(lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/posts", response_model=schemas.Post)
 async def create_post(
@@ -50,7 +60,9 @@ from sqlalchemy.orm import selectinload
 @app.get("/users/{user_id}", response_model=schemas.User)
 async def get_user_replica(user_id: int, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(
-        select(models.User).options(selectinload(models.User.posts)).where(models.User.id == user_id)
+        select(models.User)
+        .options(selectinload(models.User.posts), selectinload(models.User.comments))
+        .where(models.User.id == user_id)
     )
     user = result.scalar_one_or_none()
     if not user:
