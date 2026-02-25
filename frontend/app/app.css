@@ -3,11 +3,76 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  --color-brand: var(--theme-brand);
+  --color-brand-hover: var(--theme-brand-hover);
+
+  --color-surface: var(--theme-surface);
+  --color-surface-hover: var(--theme-surface-hover);
+
+  --color-background: var(--theme-background);
+  --color-foreground: var(--theme-foreground);
+  --color-foreground-muted: var(--theme-foreground-muted);
+
+  --color-border-subtle: var(--theme-border-subtle);
+}
+
+@layer base {
+  :root {
+    /* Subtle minimalistic theme with softer grays */
+    --theme-brand: #4b5563;
+    /* Gray 600 */
+    --theme-brand-hover: #6b7280;
+    /* Gray 500 */
+
+    --theme-surface: #ffffff;
+    --theme-surface-hover: #f9fafb;
+    /* Gray 50 */
+
+    --theme-background: #f3f4f6;
+    /* Gray 100 */
+
+    --theme-foreground: #111827;
+    /* Gray 900 */
+    --theme-foreground-muted: #6b7280;
+    /* Gray 500 */
+
+    --theme-border-subtle: #e5e7eb;
+    /* Gray 200 */
+  }
+
+  /* Dark mode overrides (Soft dark grays instead of navy) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --theme-brand: #e5e7eb;
+      /* Gray 200 */
+      --theme-brand-hover: #f3f4f6;
+      /* Gray 100 */
+
+      --theme-surface: #1f2937;
+      /* Gray 800 */
+      --theme-surface-hover: #374151;
+      /* Gray 700 */
+
+      --theme-background: #111827;
+      /* Gray 900 */
+
+      --theme-foreground: #f9fafb;
+      /* Gray 50 */
+      --theme-foreground-muted: #9ca3af;
+      /* Gray 400 */
+
+      --theme-border-subtle: #374151;
+      /* Gray 700 */
+    }
+  }
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  @apply antialiased transition-colors duration-200;
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
