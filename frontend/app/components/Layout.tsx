@@ -8,11 +8,25 @@ export default function Layout() {
         <div className="min-h-screen flex flex-col">
             <header className="sticky top-0 z-50 w-full border-b border-border-subtle bg-surface/80 backdrop-blur-md">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <Link to="/" className="text-xl font-bold tracking-tight text-foreground">
+                    <Link to="/" className="text-xl font-bold tracking-tight text-foreground flex-shrink-0">
                         NextGen<span className="text-foreground-muted font-medium">Forum</span>
                     </Link>
 
-                    <nav className="flex items-center gap-6">
+                    <form action="/" method="GET" className="hidden md:flex flex-1 max-w-md mx-6">
+                        <div className="relative w-full">
+                            <input
+                                type="text"
+                                name="search"
+                                placeholder="Search discussions..."
+                                className="w-full bg-background border border-border-subtle rounded-full py-1.5 pl-4 pr-10 text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand text-foreground placeholder-[var(--theme-foreground-muted)]"
+                            />
+                            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-brand cursor-pointer">
+                                🔍
+                            </button>
+                        </div>
+                    </form>
+
+                    <nav className="flex items-center gap-6 flex-shrink-0">
                         <Link to="/" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors">
                             Home
                         </Link>
@@ -23,7 +37,7 @@ export default function Layout() {
                                 </Link>
                                 <div className="w-px h-4 bg-border-subtle mx-2"></div>
                                 <span className="text-sm font-medium text-foreground-muted">
-                                    {user.full_name}
+                                    {user.username}
                                 </span>
                                 <button
                                     onClick={logout}

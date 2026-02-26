@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
     const [email, setEmail] = useState("");
-    const [fullName, setFullName] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -22,7 +22,7 @@ export default function Register() {
             // 1. Register the user
             await usersClient.post("/users", {
                 email,
-                full_name: fullName,
+                username: username,
                 password
             });
 
@@ -83,11 +83,11 @@ export default function Register() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-foreground mb-1">Username</label>
                     <input
                         type="text"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
                         className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
                         required
                     />

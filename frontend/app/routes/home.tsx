@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 
@@ -7,22 +7,114 @@ type Post = {
   id: number;
   title: string;
   content: string;
+  category: string;
+  is_edited: boolean;
   owner_id: number;
+  created_at: string;
+  owner: {
+    id: number;
+    email: string;
+    username: string;
+  };
+  likes: any[];
 };
 
+function timeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  const years = Math.floor(diffInSeconds / 31536000);
+  if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
+
+  const months = Math.floor(diffInSeconds / 2592000);
+  if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
+
+  const weeks = Math.floor(diffInSeconds / 604800);
+  if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+
+  const days = Math.floor(diffInSeconds / 86400);
+  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+
+  const hours = Math.floor(diffInSeconds / 3600);
+  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+
+  const minutes = Math.floor(diffInSeconds / 60);
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+
+  return "just now";
+  return "just now";
+}
+
+type SelectOption = { value: string; label: string };
+
+function CustomSelect({ value, onChange, options, className = "" }: { value: string, onChange: (v: string) => void, options: SelectOption[], className?: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const currentLabel = options.find(o => o.value === value)?.label || value;
+
+  return (
+    <div className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        className="w-full h-full flex items-center justify-between gap-3 px-3 py-1.5 bg-surface border border-border-subtle rounded-xl text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand hover:border-brand/40 transition-all cursor-pointer"
+      >
+        <span className="whitespace-nowrap capitalize">{currentLabel}</span>
+        <svg className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+
+      <div className={`absolute left-0 top-full mt-1 w-full bg-surface rounded-xl shadow-lg border border-border-subtle z-50 overflow-hidden transition-all duration-200 origin-top ${isOpen ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+        <div className="py-1">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); }}
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              className={`w-full text-left px-4 py-2 text-sm hover:bg-surface-hover transition-colors whitespace-nowrap capitalize cursor-pointer ${value === opt.value ? 'bg-brand/10 text-brand font-medium' : 'text-foreground'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("search");
+
   const [posts, setPosts] = useState<Post[]>([]);
+  const [categories, setCategories] = useState<string[]>(["unknown"]);
+
+  // Filters
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortFilter, setSortFilter] = useState("recent");
+
+  // Accordion state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
+  const [newCategory, setNewCategory] = useState("unknown");
   const [submitting, setSubmitting] = useState(false);
 
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const res = await postsClient.get("/posts");
+
+      const params = new URLSearchParams();
+      if (searchQuery) params.append("search", searchQuery);
+      if (categoryFilter !== "all") params.append("category", categoryFilter);
+      if (sortFilter) params.append("sort", sortFilter);
+
+      const res = await postsClient.get(`/posts?${params.toString()}`);
       setPosts(res.data);
     } catch (err) {
       console.error("Failed to fetch posts", err);
@@ -31,9 +123,30 @@ export default function Home() {
     }
   };
 
+  const fetchConfig = async () => {
+    try {
+      const response = await fetch("/forum-config.json");
+      const config = await response.json();
+      if (config.categories) {
+        setCategories(config.categories);
+        if (config.categories.includes("unknown")) {
+          setNewCategory("unknown");
+        } else {
+          setNewCategory(config.categories[0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch config", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [searchQuery, categoryFilter, sortFilter]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +156,12 @@ export default function Home() {
       setSubmitting(true);
       await postsClient.post("/posts", {
         title: newTitle,
-        content: newContent
+        content: newContent,
+        category: newCategory
       });
       setNewTitle("");
       setNewContent("");
+      setIsFormOpen(false); // Close accordion on post
       await fetchPosts();
     } catch (err) {
       console.error("Failed to create post", err);
@@ -58,42 +173,85 @@ export default function Home() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Discussions</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          {searchQuery ? `Search Results for "${searchQuery}"` : "Discussions"}
+        </h1>
+        <div className="flex gap-3">
+          <CustomSelect
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            options={[
+              { value: "all", label: "All Categories" },
+              ...categories.map(c => ({ value: c, label: c }))
+            ]}
+            className="w-40 md:w-48"
+          />
+          <CustomSelect
+            value={sortFilter}
+            onChange={setSortFilter}
+            options={[
+              { value: "recent", label: "Most Recent" },
+              { value: "weekly_top", label: "Top This Week" }
+            ]}
+            className="w-40 md:w-48"
+          />
+        </div>
       </div>
 
       {user && (
-        <div className="bg-surface rounded-xl p-6 shadow-sm border border-border-subtle">
-          <h2 className="text-lg font-semibold mb-4 text-foreground">Start a new discussion</h2>
-          <form onSubmit={handleCreatePost} className="space-y-4">
-            <div>
-              <input
-                type="text"
-                placeholder="Title"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground placeholder-[var(--theme-foreground-muted)]"
-                required
-              />
+        <div className="bg-surface rounded-xl shadow-sm border border-border-subtle flex flex-col">
+          <button
+            type="button"
+            onClick={() => setIsFormOpen(!isFormOpen)}
+            className={`w-full p-6 text-left flex items-center justify-between focus:outline-none hover:bg-surface-hover/50 transition-colors cursor-pointer ${isFormOpen ? 'rounded-t-xl' : 'rounded-xl'}`}
+          >
+            <h2 className="text-lg font-semibold text-foreground">Start a new discussion</h2>
+            <div className={`transform transition-transform duration-300 ${isFormOpen ? 'rotate-180' : ''}`}>
+              ▼
             </div>
-            <div>
-              <textarea
-                placeholder="What's on your mind?"
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[100px] text-foreground placeholder-[var(--theme-foreground-muted)]"
-                required
-              />
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-brand px-6 py-2 text-sm font-medium text-surface shadow transition-colors hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {submitting ? "Posting..." : "Post"}
-              </button>
-            </div>
-          </form>
+          </button>
+
+          <div className={`transition-all duration-300 ease-in-out ${isFormOpen ? 'max-h-[500px] opacity-100 p-6 pt-0 border-t border-border-subtle overflow-visible' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+            <form onSubmit={handleCreatePost} className="space-y-4 pt-4 relative">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground placeholder-[var(--theme-foreground-muted)]"
+                  required
+                />
+              </div>
+              <div>
+                <textarea
+                  placeholder="What's on your mind?"
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[100px] text-foreground placeholder-[var(--theme-foreground-muted)]"
+                  required
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium text-foreground whitespace-nowrap">Category:</label>
+                <CustomSelect
+                  value={newCategory}
+                  onChange={setNewCategory}
+                  options={categories.map(c => ({ value: c, label: c }))}
+                  className="w-48"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="inline-flex items-center justify-center rounded-md bg-brand px-6 py-2 text-sm font-medium text-surface shadow transition-colors hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {submitting ? "Posting..." : "Post"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -109,18 +267,37 @@ export default function Home() {
             <Link
               key={post.id}
               to={`/posts/${post.id}`}
-              className="block bg-surface p-6 rounded-xl border border-border-subtle hover:border-brand/40 hover:shadow-md transition-all group"
+              className="block bg-surface p-6 rounded-xl border border-border-subtle hover:border-brand/40 hover:shadow-md transition-all group relative"
             >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
+                    {post.category}
+                  </span>
+                  <span className="text-xs text-foreground-muted">{timeAgo(post.created_at)}</span>
+                </div>
+              </div>
               <h3 className="text-xl font-semibold mb-2 text-foreground group-hover:text-brand transition-colors">
                 {post.title}
               </h3>
               <p className="text-foreground-muted line-clamp-2">
                 {post.content}
               </p>
-              <div className="mt-4 flex items-center text-sm text-foreground-muted">
-                <span>By User #{post.owner_id}</span>
-                <span className="mx-2">•</span>
-                <span>Click to view discussion</span>
+              <div className="mt-4 flex items-center justify-between text-sm text-foreground-muted">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand uppercase">
+                    {post.owner.username.charAt(0)}
+                  </div>
+                  <span>{post.owner.username}</span>
+                </div>
+
+                {/* Visual Fake Like Counter for Feeds - Real Interaction happens on Post detail*/}
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center gap-1.5 text-foreground">
+                    <span className="text-lg">♥</span>
+                    <span className="font-medium">{post.likes?.length || 0}</span>
+                  </div>
+                </div>
               </div>
             </Link>
           ))

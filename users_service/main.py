@@ -27,8 +27,20 @@ app.add_middleware(
 
 @app.post("/users", response_model=schemas.User)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(database.get_db)):
+    # Check if username is already taken
+    result = await db.execute(select(models.User).where(models.User.username == user.username))
+    existing_user = result.scalar_one_or_none()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+        
+    # Check if email is already taken
+    result_email = await db.execute(select(models.User).where(models.User.email == user.email))
+    existing_email = result_email.scalar_one_or_none()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     hashed_password = auth.get_password_hash(user.password)
-    db_user = models.User(email=user.email, full_name=user.full_name, hashed_password=hashed_password)
+    db_user = models.User(email=user.email, username=user.username, hashed_password=hashed_password)
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
@@ -37,18 +49,27 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(datab
     await producer.publish_event("user_created", {
         "id": db_user.id,
         "email": db_user.email,
-        "full_name": db_user.full_name
+        "username": db_user.username
     })
     
     return db_user
+
+from sqlalchemy import or_
 
 @app.post("/login", response_model=schemas.Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: AsyncSession = Depends(database.get_db)
 ):
-    # Authenticate user
-    result = await db.execute(select(models.User).where(models.User.email == form_data.username))
+    # Authenticate user by email or username
+    result = await db.execute(
+        select(models.User).where(
+            or_(
+                models.User.email == form_data.username,
+                models.User.username == form_data.username
+            )
+        )
+    )
     user = result.scalar_one_or_none()
     
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
@@ -73,7 +94,7 @@ async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession =
         raise HTTPException(status_code=404, detail="User not found")
     
     db_user.email = user.email
-    db_user.full_name = user.full_name
+    db_user.username = user.username
     
     await db.commit()
     await db.refresh(db_user)
@@ -82,7 +103,7 @@ async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession =
     await producer.publish_event("user_updated", {
         "id": db_user.id,
         "email": db_user.email,
-        "full_name": db_user.full_name
+        "username": db_user.username
     })
 
     return db_user

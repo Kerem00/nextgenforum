@@ -1,31 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List
-
-class PostBase(BaseModel):
-    title: str
-    content: str
-
-class PostCreate(PostBase):
-    pass
-
-class Post(PostBase):
-    id: int
-    owner_id: int
-
-    model_config = ConfigDict(from_attributes=True)
-
-class CommentBase(BaseModel):
-    content: str
-
-class CommentCreate(CommentBase):
-    pass
-
-class Comment(CommentBase):
-    id: int
-    post_id: int
-    owner_id: int
-
-    model_config = ConfigDict(from_attributes=True)
+from datetime import datetime
 
 class LikeBase(BaseModel):
     pass
@@ -38,12 +13,51 @@ class Like(LikeBase):
     owner_id: int
     post_id: int | None = None
     comment_id: int | None = None
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
+class PostBase(BaseModel):
+    title: str
+    content: str
+    category: str = "unknown"
+    is_edited: bool = False
+
+class PostCreate(BaseModel):
+    title: str
+    content: str
+    category: str = "unknown"
+
 class UserBase(BaseModel):
     email: str
-    full_name: str
+    username: str
+
+class Post(PostBase):
+    id: int
+    owner_id: int
+    created_at: datetime
+    owner: UserBase
+    likes: List[Like] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+class CommentBase(BaseModel):
+    content: str
+    is_edited: bool = False
+    is_pinned: bool = False
+
+class CommentCreate(BaseModel):
+    content: str
+
+class Comment(CommentBase):
+    id: int
+    post_id: int
+    owner_id: int
+    created_at: datetime
+    owner: UserBase
+    likes: List[Like] = []
+
+    model_config = ConfigDict(from_attributes=True)
 
 class User(UserBase):
     id: int

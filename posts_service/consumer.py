@@ -28,7 +28,7 @@ async def process_message(message: aio_pika.IncomingMessage):
                     stmt = insert(models.User).values(
                         id=user_data["id"],
                         email=user_data["email"],
-                        full_name=user_data["full_name"]
+                        username=user_data["username"]
                     )
                     
                     # If conflict on primary key (id), update the columns
@@ -36,7 +36,7 @@ async def process_message(message: aio_pika.IncomingMessage):
                         index_elements=['id'],
                         set_=dict(
                             email=user_data["email"],
-                            full_name=user_data["full_name"]
+                            username=user_data["username"]
                         )
                     )
                     
