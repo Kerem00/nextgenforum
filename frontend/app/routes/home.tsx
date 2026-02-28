@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
+import MarkdownTextarea from "../components/MarkdownTextarea";
 
 type Post = {
   id: number;
@@ -224,14 +225,12 @@ export default function Home() {
                 />
               </div>
               <div>
-                <textarea
-                  placeholder="What's on your mind?"
+                <MarkdownTextarea
+                  placeholder="What's on your mind? (Markdown Supported)"
                   value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[100px] text-foreground placeholder-[var(--theme-foreground-muted)]"
+                  onValueChange={setNewContent}
                   required
                 />
-                <p className="text-xs text-foreground-muted mt-1">Markdown supported</p>
               </div>
               <div className="flex items-center gap-4">
                 <label className="text-sm font-medium text-foreground whitespace-nowrap">Category:</label>
@@ -242,7 +241,8 @@ export default function Home() {
                   className="w-48"
                 />
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-foreground-muted">Markdown supported</p>
                 <button
                   type="submit"
                   disabled={submitting}

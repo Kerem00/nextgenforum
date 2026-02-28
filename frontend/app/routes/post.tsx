@@ -4,6 +4,7 @@ import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import MarkdownTextarea from "../components/MarkdownTextarea";
 
 type Post = {
     id: number;
@@ -359,10 +360,10 @@ export default function PostDetail() {
                             onChange={(e) => setEditPostTitle(e.target.value)}
                             className="w-full px-4 py-2 text-xl font-bold bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand text-foreground"
                         />
-                        <textarea
+                        <MarkdownTextarea
                             value={editPostContent}
-                            onChange={(e) => setEditPostContent(e.target.value)}
-                            className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand min-h-[150px] text-foreground"
+                            onValueChange={setEditPostContent}
+                            className="min-h-[150px]"
                         />
                         <div className="flex gap-2">
                             <button onClick={handleSavePostEdit} disabled={submitEditPost} className="px-4 py-2 bg-brand text-surface rounded-md text-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer">
@@ -382,9 +383,11 @@ export default function PostDetail() {
                             </div>
                             <span>{post.owner.username}</span>
                         </div>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} className="markdown-content max-w-none text-foreground mb-8">
-                            {post.content}
-                        </ReactMarkdown>
+                        <div className="markdown-content max-w-none text-foreground mb-8">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {post.content}
+                            </ReactMarkdown>
+                        </div>
                     </>
                 )}
 
@@ -435,15 +438,15 @@ export default function PostDetail() {
                             {user.username?.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 space-y-3">
-                            <textarea
-                                placeholder="Add to the discussion..."
+                            <MarkdownTextarea
+                                placeholder="Add to the discussion... (Markdown Supported)"
                                 value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                                className="w-full px-4 py-3 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[80px] text-foreground resize-y placeholder-[var(--theme-foreground-muted)]"
+                                onValueChange={setNewComment}
+                                className="min-h-[80px]"
                                 required
                             />
-                            <p className="text-xs text-foreground-muted">Markdown supported</p>
-                            <div className="flex justify-end">
+                            <div className="flex justify-between items-center mt-2">
+                                <p className="text-xs text-foreground-muted">Markdown supported</p>
                                 <button
                                     type="submit"
                                     disabled={submittingComment}
@@ -537,10 +540,10 @@ export default function PostDetail() {
 
                                     {isEditingThis ? (
                                         <div className="mt-2 space-y-2">
-                                            <textarea
+                                            <MarkdownTextarea
                                                 value={editCommentContent}
-                                                onChange={(e) => setEditCommentContent(e.target.value)}
-                                                className="w-full px-3 py-2 bg-background border border-border-subtle rounded-md focus:outline-none focus:ring-1 focus:ring-brand text-sm text-foreground min-h-[60px]"
+                                                onValueChange={setEditCommentContent}
+                                                className="min-h-[60px]"
                                             />
                                             <div className="flex gap-2 justify-end">
                                                 <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 bg-background text-foreground border border-border-subtle rounded text-xs font-medium hover:bg-surface-hover transition-colors cursor-pointer">
@@ -552,7 +555,9 @@ export default function PostDetail() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]} className="markdown-content text-foreground text-sm">{comment.content}</ReactMarkdown>
+                                        <div className="markdown-content text-foreground text-sm">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.content}</ReactMarkdown>
+                                        </div>
                                     )}
                                 </div>
                             </div>
