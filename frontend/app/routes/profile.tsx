@@ -20,7 +20,7 @@ type Comment = {
 type UserProfile = {
     id: number;
     email: string;
-    full_name: string;
+    username: string;
     posts: Post[];
     comments: Comment[];
 };
@@ -71,9 +71,9 @@ export default function Profile() {
         <div className="max-w-3xl mx-auto space-y-8">
             <div className="bg-surface rounded-xl p-8 shadow-sm border border-border-subtle flex flex-col items-center">
                 <div className="w-24 h-24 rounded-full bg-brand text-surface flex items-center justify-center font-bold text-3xl mb-4 shadow-inner">
-                    {profileData.full_name?.charAt(0).toUpperCase()}
+                    {profileData.username?.charAt(0).toUpperCase()}
                 </div>
-                <h1 className="text-2xl font-bold text-foreground">{profileData.full_name}</h1>
+                <h1 className="text-2xl font-bold text-foreground">{profileData.username}</h1>
                 <p className="text-foreground-muted">{profileData.email}</p>
 
                 {isCurrentUser && (

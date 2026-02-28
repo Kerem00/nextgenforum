@@ -378,10 +378,12 @@ export default function PostDetail() {
                     <>
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3 pr-10">{post.title}</h1>
                         <div className="text-sm text-foreground-muted mb-6 flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand uppercase">
-                                {post.owner.username.charAt(0)}
-                            </div>
-                            <span>{post.owner.username}</span>
+                            <Link to={`/users/${post.owner_id}`} className="flex items-center gap-2 hover:text-brand transition-colors">
+                                <div className="w-6 h-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand uppercase">
+                                    {post.owner.username.charAt(0)}
+                                </div>
+                                <span>{post.owner.username}</span>
+                            </Link>
                         </div>
                         <div className="markdown-content max-w-none text-foreground mb-8">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -476,7 +478,9 @@ export default function PostDetail() {
                                 <div className="flex-1">
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-medium text-foreground text-sm">{comment.owner.username}</span>
+                                            <Link to={`/users/${comment.owner_id}`} className="font-medium text-foreground text-sm hover:text-brand transition-colors">
+                                                {comment.owner.username}
+                                            </Link>
                                             <span className="text-xs text-foreground-muted">{timeAgo(comment.created_at)}</span>
                                             {comment.is_pinned && <span className="text-xs font-semibold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded border border-green-500/20">Pinned comment</span>}
                                             {comment.is_edited && <span className="text-xs text-foreground-muted italic">Edited</span>}
