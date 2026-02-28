@@ -31,6 +31,7 @@ class PostCreate(BaseModel):
 class UserBase(BaseModel):
     email: str
     username: str
+    created_at: datetime
 
 class Post(PostBase):
     id: int
@@ -45,6 +46,7 @@ class CommentBase(BaseModel):
     content: str
     is_edited: bool = False
     is_pinned: bool = False
+    post_title: str | None = None
 
 class CommentCreate(BaseModel):
     content: str

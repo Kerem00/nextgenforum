@@ -1,8 +1,11 @@
 from pydantic import BaseModel, ConfigDict
 
+from datetime import datetime
+
 class UserBase(BaseModel):
     email: str
     username: str
+    created_at: datetime
 
 class UserCreate(UserBase):
     password: str

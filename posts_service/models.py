@@ -9,6 +9,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True) # ID from the upstream Users Service
     email = Column(String, unique=True, index=True)
     username = Column(String, unique=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     posts = relationship("Post", back_populates="owner")
     comments = relationship("Comment", back_populates="owner")
@@ -43,6 +44,10 @@ class Comment(Base):
     post = relationship("Post", back_populates="comments")
     owner = relationship("User", back_populates="comments")
     likes = relationship("Like", back_populates="comment", cascade="all, delete-orphan")
+
+    @property
+    def post_title(self) -> str | None:
+        return self.post.title if self.post else None
 
 class Like(Base):
     __tablename__ = "likes"

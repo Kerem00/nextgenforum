@@ -95,7 +95,8 @@ async def get_user_replica(user_id: int, db: AsyncSession = Depends(database.get
         select(models.User)
         .options(
             selectinload(models.User.posts).selectinload(models.Post.likes), 
-            selectinload(models.User.comments).selectinload(models.Comment.likes)
+            selectinload(models.User.comments).selectinload(models.Comment.likes),
+            selectinload(models.User.comments).selectinload(models.Comment.post)
         )
         .where(models.User.id == user_id)
     )
