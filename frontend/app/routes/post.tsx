@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type Post = {
     id: number;
@@ -380,9 +382,9 @@ export default function PostDetail() {
                             </div>
                             <span>{post.owner.username}</span>
                         </div>
-                        <div className="prose prose-slate dark:prose-invert max-w-none text-foreground whitespace-pre-wrap mb-8">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} className="markdown-content max-w-none text-foreground mb-8">
                             {post.content}
-                        </div>
+                        </ReactMarkdown>
                     </>
                 )}
 
@@ -440,6 +442,7 @@ export default function PostDetail() {
                                 className="w-full px-4 py-3 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[80px] text-foreground resize-y placeholder-[var(--theme-foreground-muted)]"
                                 required
                             />
+                            <p className="text-xs text-foreground-muted">Markdown supported</p>
                             <div className="flex justify-end">
                                 <button
                                     type="submit"
@@ -549,7 +552,7 @@ export default function PostDetail() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-foreground text-sm whitespace-pre-wrap">{comment.content}</p>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]} className="markdown-content text-foreground text-sm">{comment.content}</ReactMarkdown>
                                     )}
                                 </div>
                             </div>

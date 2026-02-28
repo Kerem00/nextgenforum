@@ -231,6 +231,7 @@ export default function Home() {
                   className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[100px] text-foreground placeholder-[var(--theme-foreground-muted)]"
                   required
                 />
+                <p className="text-xs text-foreground-muted mt-1">Markdown supported</p>
               </div>
               <div className="flex items-center gap-4">
                 <label className="text-sm font-medium text-foreground whitespace-nowrap">Category:</label>
