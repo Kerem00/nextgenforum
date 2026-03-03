@@ -19,6 +19,7 @@ def test_flow():
     print(f"\n1. Registering User in Users Service ({email})...")
     user_data = {
         "email": email,
+        "username": f"user_{rand_str}",
         "full_name": "Test User",
         "password": password
     }
