@@ -66,13 +66,10 @@ function timeAgo(dateString: string) {
 }
 
 function renderCommentContent(text: string, knownUsers: {id: number, username: string}[]) {
-    // 1. Preprocess text: find @username and replace with markdown link pointing to mention:username
-    // Only replace if the username exists in knownUsers to make only valid ones clickable natively,
-    // though the spec says make ALL of them highlighted even if unknown (just non-clickable).
-    
     // We replace @username with a special markdown link `[@username](mention:username)`
-    const preprocessedText = text.replace(/(^|\s)@([a-zA-Z0-9_]+)/g, (match, space, username) => {
-        return `${space}[@${username}](mention:${username})`;
+    // Use negative lookbehind to avoid matching emails or word-alphanumeric@mention
+    const preprocessedText = text.replace(/(^|[^\w])@([a-zA-Z0-9_]+)/g, (match, prefix, username) => {
+        return `${prefix}[@${username}](mention:${username})`;
     });
 
     // Custom renderer for links to intercept 'mention:'
@@ -92,7 +89,18 @@ function renderCommentContent(text: string, knownUsers: {id: number, username: s
             }
             // @ts-ignore - ReactMarkdown types are sometimes overly strict with standard anchor props
             return <a href={href} className="text-brand hover:underline" {...props}>{children}</a>;
-        }
+        },
+        blockquote: ({ children }) => (
+            <div className="flex items-stretch gap-0 my-3 rounded-lg overflow-hidden border border-brand/15 bg-brand/5 not-italic">
+                <div className="w-1 flex-shrink-0 bg-brand/50 rounded-l-lg" />
+                <div className="py-2.5 px-3 min-w-0 flex-1 text-xs text-foreground-muted [&>p]:m-0 [&_strong]:text-brand [&_strong]:not-italic">
+                    <div className="flex items-center gap-1 mb-0.5 opacity-60">
+                        <svg className="w-3 h-3 text-brand" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.293-3.995 5.848h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.293-3.996 5.848h3.983v10h-9.983z"/></svg>
+                    </div>
+                    {children}
+                </div>
+            </div>
+        )
     };
 
     return (
@@ -236,10 +244,22 @@ export default function PostDetail() {
         e.preventDefault();
         if (!newComment.trim() || !postId) return;
 
+        // Prepend a markdown blockquote of the parent comment if replying
+        let finalContent = newComment;
+        if (replyingToCommentId) {
+            const parentComment = comments.find((c: Comment) => c.id === replyingToCommentId);
+            if (parentComment) {
+                // Truncate the quoted text to 80 chars, replace newlines with spaces
+                const quoteText = parentComment.content.replace(/\n/g, " ").slice(0, 80);
+                const ellipsis = parentComment.content.length > 80 ? "..." : "";
+                finalContent = `> **${parentComment.owner.username}:** ${quoteText}${ellipsis}\n\n${newComment}`;
+            }
+        }
+
         try {
             setSubmittingComment(true);
             const res = await postsClient.post(`/posts/${postId}/comments`, {
-                content: newComment
+                content: finalContent
             });
             setComments([...comments, res.data]);
             setNewComment("");
