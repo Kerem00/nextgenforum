@@ -1,5 +1,5 @@
-from pydantic import BaseModel, ConfigDict
-from typing import List
+from pydantic import BaseModel, ConfigDict, computed_field, Field
+from typing import List, Any
 from datetime import datetime
 
 class LikeBase(BaseModel):
@@ -39,6 +39,11 @@ class Post(PostBase):
     created_at: datetime
     owner: UserBase
     likes: List[Like] = []
+    comments: List[Any] = Field(default=[], exclude=True)
+
+    @computed_field
+    def comment_count(self) -> int:
+        return len(self.comments)
 
     model_config = ConfigDict(from_attributes=True)
 

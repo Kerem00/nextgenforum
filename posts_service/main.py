@@ -53,7 +53,7 @@ async def create_post(
     # Eager load likes and owner for the response schema
     result = await db.execute(
         select(models.Post)
-        .options(selectinload(models.Post.likes), selectinload(models.Post.owner))
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
         .where(models.Post.id == db_post.id)
     )
     return result.scalar_one_or_none()
@@ -65,7 +65,7 @@ async def get_posts(
     sort: str | None = "recent",
     db: AsyncSession = Depends(database.get_db)
 ):
-    query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner))
+    query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
     
     if search:
         query = query.where(models.Post.title.ilike(f"%{search}%"))
@@ -152,7 +152,7 @@ async def update_post(
 ):
     result = await db.execute(
         select(models.Post)
-        .options(selectinload(models.Post.likes), selectinload(models.Post.owner))
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
         .where(models.Post.id == post_id)
     )
     post = result.scalar_one_or_none()

@@ -43,7 +43,7 @@
 
   /* Dark mode overrides (Soft dark grays instead of navy) */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not(.light) {
       --theme-brand: #e5e7eb;
       /* Gray 200 */
       --theme-brand-hover: #f3f4f6;
@@ -65,6 +65,29 @@
       --theme-border-subtle: #374151;
       /* Gray 700 */
     }
+  }
+
+  :root.dark {
+    --theme-brand: #e5e7eb;
+    /* Gray 200 */
+    --theme-brand-hover: #f3f4f6;
+    /* Gray 100 */
+
+    --theme-surface: #1f2937;
+    /* Gray 800 */
+    --theme-surface-hover: #374151;
+    /* Gray 700 */
+
+    --theme-background: #111827;
+    /* Gray 900 */
+
+    --theme-foreground: #f9fafb;
+    /* Gray 50 */
+    --theme-foreground-muted: #9ca3af;
+    /* Gray 400 */
+
+    --theme-border-subtle: #374151;
+    /* Gray 700 */
   }
 }
 

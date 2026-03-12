@@ -18,6 +18,7 @@ type Post = {
     username: string;
   };
   likes: any[];
+  comment_count: number;
 };
 
 function timeAgo(dateString: string) {
@@ -293,10 +294,18 @@ export default function Home() {
                 </div>
 
                 {/* Visual Fake Like Counter for Feeds - Real Interaction happens on Post detail*/}
-                <div className="flex flex-col items-center">
+                <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5 text-foreground">
-                    <span className="text-lg">♥</span>
-                    <span className="font-medium">{post.likes?.length || 0}</span>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                    </svg>
+                    <span className="font-medium">{post.comment_count || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <span className="text-lg">♥</span>
+                      <span className="font-medium">{post.likes?.length || 0}</span>
+                    </div>
                   </div>
                 </div>
               </div>
