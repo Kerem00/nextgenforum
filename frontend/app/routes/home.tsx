@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import MarkdownTextarea from "../components/MarkdownTextarea";
+import { hashColor } from "../utils/hashColor";
 
 type Post = {
   id: number;
@@ -275,6 +276,13 @@ export default function Home() {
                   placeholder="What's on your mind? (Markdown Supported)"
                   value={newContent}
                   onValueChange={setNewContent}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      if (!newContent.trim() || submitting) return;
+                      handleCreatePost(e as unknown as React.FormEvent);
+                    }
+                  }}
                   required
                 />
               </div>
@@ -288,7 +296,7 @@ export default function Home() {
                 />
               </div>
               <div className="flex justify-between items-center mt-2">
-                <p className="text-xs text-foreground-muted">Markdown supported</p>
+                <p className="text-xs text-foreground-muted">Markdown supported · Ctrl+Enter to submit</p>
                 <button
                   type="submit"
                   disabled={submitting}
@@ -340,7 +348,7 @@ export default function Home() {
               </p>
               <div className="mt-4 flex items-center justify-between text-sm text-foreground-muted">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand uppercase">
+                  <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
                     {post.owner.username.charAt(0)}
                   </div>
                   <span>{post.owner.username}</span>

@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import MarkdownTextarea from "../components/MarkdownTextarea";
+import { hashColor } from "../utils/hashColor";
 
 type Post = {
     id: number;
@@ -524,7 +525,7 @@ export default function PostDetail() {
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3 pr-10">{post.title}</h1>
                         <div className="text-sm text-foreground-muted mb-6 flex items-center gap-2">
                             <Link to={`/users/${post.owner_id}`} className="flex items-center gap-2 hover:text-brand transition-colors">
-                                <div className="w-6 h-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand uppercase">
+                                <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
                                     {post.owner.username.charAt(0)}
                                 </div>
                                 <span>{post.owner.username}</span>
@@ -581,7 +582,7 @@ export default function PostDetail() {
 
                 {user ? (
                     <form onSubmit={handleAddComment} className="flex gap-4 items-start bg-surface p-6 rounded-xl border border-border-subtle flex-col md:flex-row">
-                        <div className="hidden md:flex w-8 h-8 rounded-full bg-brand text-surface items-center justify-center font-bold flex-shrink-0 mt-2">
+                        <div className={`hidden md:flex w-8 h-8 rounded-full ${hashColor(user.username)} text-white items-center justify-center font-bold flex-shrink-0 mt-2`}>
                             {user.username?.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 w-full space-y-3">
@@ -612,9 +613,16 @@ export default function PostDetail() {
                                 onValueChange={setNewComment}
                                 knownUsers={Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as {id: number, username: string}[]}
                                 className="min-h-[80px]"
+                                onKeyDown={(e) => {
+                                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (!newComment.trim() || submittingComment) return;
+                                        handleAddComment(e as unknown as React.FormEvent);
+                                    }
+                                }}
                             />
                             <div className="flex justify-between items-center mt-2">
-                                <p className="text-xs text-foreground-muted">Markdown supported</p>
+                                <p className="text-xs text-foreground-muted">Markdown supported · Ctrl+Enter to submit</p>
                                 <button
                                     type="submit"
                                     disabled={submittingComment}
@@ -638,7 +646,7 @@ export default function PostDetail() {
 
                         return (
                             <div key={comment.id} className={`bg-surface p-5 py-4 rounded-xl border flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : 'border-border-subtle'}`}>
-                                <div className="w-8 h-8 rounded-full bg-border-subtle text-foreground flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase">
+                                <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase`}>
                                     {comment.owner.username.charAt(0)}
                                 </div>
                                 <div className="flex-1">
@@ -721,7 +729,15 @@ export default function PostDetail() {
                                                 value={editCommentContent}
                                                 onValueChange={setEditCommentContent}
                                                 className="min-h-[60px]"
+                                                onKeyDown={(e) => {
+                                                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        if (!editCommentContent.trim() || submitEditComment) return;
+                                                        handleSaveCommentEdit(comment.id);
+                                                    }
+                                                }}
                                             />
+                                            <p className="text-xs text-foreground-muted">Ctrl+Enter to submit</p>
                                             <div className="flex gap-2 justify-end">
                                                 <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 bg-background text-foreground border border-border-subtle rounded text-xs font-medium hover:bg-surface-hover transition-colors cursor-pointer">
                                                     Cancel
