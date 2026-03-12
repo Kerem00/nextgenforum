@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import ReactMarkdown from "react-markdown";
@@ -66,7 +66,7 @@ function timeAgo(dateString: string) {
     return "just now";
 }
 
-function renderCommentContent(text: string, knownUsers: {id: number, username: string}[]) {
+function renderCommentContent(text: string, knownUsers: { id: number, username: string }[]) {
     // We replace @username with a special markdown link `[@username](mention:username)`
     // Use negative lookbehind to avoid matching emails or word-alphanumeric@mention
     const preprocessedText = text.replace(/(^|[^\w])@([a-zA-Z0-9_]+)/g, (match, prefix, username) => {
@@ -79,9 +79,9 @@ function renderCommentContent(text: string, knownUsers: {id: number, username: s
             if (href?.startsWith('mention:')) {
                 const username = href.replace('mention:', '');
                 const matchedUser = knownUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
-                
+
                 const mentionClass = "font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-md mx-0.5";
-                
+
                 if (matchedUser) {
                     return <Link to={`/users/${matchedUser.id}`} className={`${mentionClass} hover:bg-brand/20 transition-colors`}>{children}</Link>;
                 } else {
@@ -96,7 +96,7 @@ function renderCommentContent(text: string, knownUsers: {id: number, username: s
                 <div className="w-1 flex-shrink-0 bg-brand/50 rounded-l-lg" />
                 <div className="py-2.5 px-3 min-w-0 flex-1 text-xs text-foreground-muted [&>p]:m-0 [&_strong]:text-brand [&_strong]:not-italic">
                     <div className="flex items-center gap-1 mb-0.5 opacity-60">
-                        <svg className="w-3 h-3 text-brand" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.293-3.995 5.848h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.293-3.996 5.848h3.983v10h-9.983z"/></svg>
+                        <svg className="w-3 h-3 text-brand" viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.293-3.995 5.848h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.293-3.996 5.848h3.983v10h-9.983z" /></svg>
                     </div>
                     {children}
                 </div>
@@ -112,38 +112,39 @@ function renderCommentContent(text: string, knownUsers: {id: number, username: s
 }
 
 function SkeletonPostCard({ index = 0 }: { index?: number }) {
-  // Use index to deterministically but organically stagger the fade-in and set widths
-  const delay = `${index * 100}ms`;
-  const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
-  const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
-  const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
+    // Use index to deterministically but organically stagger the fade-in and set widths
+    const delay = `${index * 100}ms`;
+    const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
+    const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
+    const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
 
-  return (
-    <div
-      className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
-      style={{ animationDelay: delay }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
-      </div>
-      <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
-      <div className="space-y-2 mb-4">
-        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
-        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
-      </div>
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
-          <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
+    return (
+        <div
+            className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
+            style={{ animationDelay: delay }}
+        >
+            <div className="flex items-center justify-between mb-2">
+                <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
+            </div>
+            <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
+            <div className="space-y-2 mb-4">
+                <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
+                <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
+            </div>
+            <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
+                    <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 export default function PostDetail() {
     const { postId } = useParams();
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     const [post, setPost] = useState<Post | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
@@ -173,9 +174,34 @@ export default function PostDetail() {
     const [showPinModal, setShowPinModal] = useState<number | null>(null);
     const [isCopied, setIsCopied] = useState(false);
 
+    const [confirmDeletePost, setConfirmDeletePost] = useState(false);
+    const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<number | null>(null);
+
     const postMenuRef = useRef<HTMLDivElement>(null);
     const commentMenuRef = useRef<HTMLDivElement>(null);
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
+
+    const isAdmin = user?.username === "admin";
+
+    const handleAdminDeletePost = async () => {
+        if (!postId) return;
+        try {
+            await postsClient.delete(`/posts/${postId}`);
+            navigate("/");
+        } catch (err) {
+            console.error("Failed to delete post", err);
+        }
+    };
+
+    const handleAdminDeleteComment = async (commentId: number) => {
+        try {
+            await postsClient.delete(`/comments/${commentId}`);
+            setComments(comments.filter(c => c.id !== commentId));
+            setConfirmDeleteCommentId(null);
+        } catch (err) {
+            console.error("Failed to delete comment", err);
+        }
+    };
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -186,7 +212,7 @@ export default function PostDetail() {
                 setShowCommentMenu(null);
             }
         }
-        
+
         function handleScroll() {
             if (showPostMenu) setShowPostMenu(false);
             if (showCommentMenu !== null) setShowCommentMenu(null);
@@ -467,14 +493,31 @@ export default function PostDetail() {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                         </button>
                         <div className={`absolute right-0 top-full mt-1 w-40 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showPostMenu ? 'opacity-100 scale-100 max-h-[200px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
-                            {user.id === post.owner_id ? (
+                            {user.id === post.owner_id && (
                                 <button
                                     onClick={() => { setEditingPost(true); setEditPostTitle(post.title); setEditPostContent(post.content); setShowPostMenu(false); }}
                                     className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
                                 >
                                     Edit Post
                                 </button>
-                            ) : (
+                            )}
+                            {isAdmin && (
+                                confirmDeletePost ? (
+                                    <div className="px-4 py-2 flex items-center gap-2">
+                                        <span className="text-xs text-red-500">Sure?</span>
+                                        <button onClick={handleAdminDeletePost} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer">Yes</button>
+                                        <button onClick={() => setConfirmDeletePost(false)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer">No</button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => { setConfirmDeletePost(true); }}
+                                        className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                    >
+                                        Delete Post
+                                    </button>
+                                )
+                            )}
+                            {user.id !== post.owner_id && !isAdmin && (
                                 <button
                                     onClick={() => alert("Report post clicked (no functionality yet)")}
                                     className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
@@ -597,8 +640,8 @@ export default function PostDetail() {
                                             {(comments.find((c: Comment) => c.id === replyingToCommentId)?.content.length || 0) > 100 ? "..." : ""}
                                         </div>
                                     </div>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setReplyingToCommentId(null)}
                                         className="absolute top-2 right-2 text-foreground-muted hover:text-foreground p-1 transition-colors cursor-pointer"
                                     >
@@ -611,7 +654,7 @@ export default function PostDetail() {
                                 placeholder="Add to the discussion... (Type @ to mention)"
                                 value={newComment}
                                 onValueChange={setNewComment}
-                                knownUsers={Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as {id: number, username: string}[]}
+                                knownUsers={Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[]}
                                 className="min-h-[80px]"
                                 onKeyDown={(e) => {
                                     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -702,14 +745,31 @@ export default function PostDetail() {
                                                                 {comment.is_pinned ? "Unpin Comment" : "Pin Comment"}
                                                             </button>
                                                         )}
-                                                        {user.id === comment.owner_id ? (
+                                                        {user.id === comment.owner_id && (
                                                             <button
                                                                 onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentMenu(null); }}
                                                                 className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
                                                             >
                                                                 Edit Comment
                                                             </button>
-                                                        ) : (
+                                                        )}
+                                                        {isAdmin && (
+                                                            confirmDeleteCommentId === comment.id ? (
+                                                                <div className="px-4 py-2 flex items-center gap-2">
+                                                                    <span className="text-xs text-red-500">Sure?</span>
+                                                                    <button onClick={() => handleAdminDeleteComment(comment.id)} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer">Yes</button>
+                                                                    <button onClick={() => setConfirmDeleteCommentId(null)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer">No</button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => setConfirmDeleteCommentId(comment.id)}
+                                                                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                                                >
+                                                                    Delete Comment
+                                                                </button>
+                                                            )
+                                                        )}
+                                                        {user.id !== comment.owner_id && !isAdmin && (
                                                             <button
                                                                 onClick={() => { alert("Report comment clicked (no functionality yet)"); setShowCommentMenu(null); }}
                                                                 className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
@@ -749,7 +809,7 @@ export default function PostDetail() {
                                         </div>
                                     ) : (
                                         <div className="markdown-content text-foreground text-sm">
-                                            {renderCommentContent(comment.content, Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as {id: number, username: string}[])}
+                                            {renderCommentContent(comment.content, Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[])}
                                         </div>
                                     )}
                                 </div>

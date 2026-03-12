@@ -6,6 +6,7 @@ export default [
         route("login", "routes/login.tsx"),
         route("register", "routes/register.tsx"),
         route("posts/:postId", "routes/post.tsx"),
-        route("users/:userId", "routes/profile.tsx")
+        route("users/:userId", "routes/profile.tsx"),
+        route("admin", "routes/admin.tsx")
     ])
 ] satisfies RouteConfig;

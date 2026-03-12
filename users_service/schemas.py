@@ -21,3 +21,13 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: str | None = None
+    username: str | None = None
+
+class AdminUser(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_banned: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
