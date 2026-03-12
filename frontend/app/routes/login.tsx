@@ -15,6 +15,12 @@ export default function Login() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        
+        if (!email.trim() || !password.trim()) {
+            setError("Both email and password are required.");
+            return;
+        }
+
         setLoading(true);
 
         // FastAPI OAuth2PasswordRequestForm needs application/x-www-form-urlencoded
@@ -60,7 +66,6 @@ export default function Login() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                        required
                     />
                 </div>
 
@@ -71,7 +76,6 @@ export default function Login() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                        required
                     />
                 </div>
 

@@ -94,8 +94,11 @@ async def get_user_replica(user_id: int, db: AsyncSession = Depends(database.get
     result = await db.execute(
         select(models.User)
         .options(
-            selectinload(models.User.posts).selectinload(models.Post.likes), 
+            selectinload(models.User.posts).selectinload(models.Post.likes),
+            selectinload(models.User.posts).selectinload(models.Post.owner),
+            selectinload(models.User.posts).selectinload(models.Post.comments),
             selectinload(models.User.comments).selectinload(models.Comment.likes),
+            selectinload(models.User.comments).selectinload(models.Comment.owner),
             selectinload(models.User.comments).selectinload(models.Comment.post)
         )
         .where(models.User.id == user_id)
@@ -126,7 +129,7 @@ async def create_comment(
     # Needs likes array and owner for schema
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == db_comment.id)
     )
     return result.scalar_one_or_none()
@@ -135,7 +138,7 @@ async def create_comment(
 async def get_comments(post_id: int, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.post_id == post_id)
     )
     comments = list(result.scalars().all())
@@ -179,7 +182,7 @@ async def update_comment(
 ):
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == comment_id)
     )
     comment = result.scalar_one_or_none()
@@ -203,7 +206,7 @@ async def pin_comment(
 ):
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == comment_id)
     )
     comment = result.scalar_one_or_none()

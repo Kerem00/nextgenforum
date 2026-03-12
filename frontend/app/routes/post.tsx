@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import ReactMarkdown from "react-markdown";
+import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import MarkdownTextarea from "../components/MarkdownTextarea";
 
@@ -64,6 +65,73 @@ function timeAgo(dateString: string) {
     return "just now";
 }
 
+function renderCommentContent(text: string, knownUsers: {id: number, username: string}[]) {
+    // 1. Preprocess text: find @username and replace with markdown link pointing to mention:username
+    // Only replace if the username exists in knownUsers to make only valid ones clickable natively,
+    // though the spec says make ALL of them highlighted even if unknown (just non-clickable).
+    
+    // We replace @username with a special markdown link `[@username](mention:username)`
+    const preprocessedText = text.replace(/(^|\s)@([a-zA-Z0-9_]+)/g, (match, space, username) => {
+        return `${space}[@${username}](mention:${username})`;
+    });
+
+    // Custom renderer for links to intercept 'mention:'
+    const components: Components = {
+        a: ({ node, href, children, ...props }) => {
+            if (href?.startsWith('mention:')) {
+                const username = href.replace('mention:', '');
+                const matchedUser = knownUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
+                
+                const mentionClass = "font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-md mx-0.5";
+                
+                if (matchedUser) {
+                    return <Link to={`/users/${matchedUser.id}`} className={`${mentionClass} hover:bg-brand/20 transition-colors`}>{children}</Link>;
+                } else {
+                    return <span className={mentionClass}>{children}</span>;
+                }
+            }
+            // @ts-ignore - ReactMarkdown types are sometimes overly strict with standard anchor props
+            return <a href={href} className="text-brand hover:underline" {...props}>{children}</a>;
+        }
+    };
+
+    return (
+        <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+            {preprocessedText}
+        </ReactMarkdown>
+    );
+}
+
+function SkeletonPostCard({ index = 0 }: { index?: number }) {
+  // Use index to deterministically but organically stagger the fade-in and set widths
+  const delay = `${index * 100}ms`;
+  const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
+  const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
+  const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
+
+  return (
+    <div
+      className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
+      style={{ animationDelay: delay }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
+      </div>
+      <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
+      <div className="space-y-2 mb-4">
+        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
+        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
+          <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PostDetail() {
     const { postId } = useParams();
     const { user } = useAuth();
@@ -71,6 +139,7 @@ export default function PostDetail() {
     const [post, setPost] = useState<Post | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showSkeleton, setShowSkeleton] = useState(false);
 
     const [newComment, setNewComment] = useState("");
     const [submittingComment, setSubmittingComment] = useState(false);
@@ -86,12 +155,41 @@ export default function PostDetail() {
     const [editCommentContent, setEditCommentContent] = useState("");
     const [submitEditComment, setSubmitEditComment] = useState(false);
 
+    const [replyingToCommentId, setReplyingToCommentId] = useState<number | null>(null);
+
     const [showPostMenu, setShowPostMenu] = useState(false);
     const [showCommentMenu, setShowCommentMenu] = useState<number | null>(null);
 
     const [pinningCommentId, setPinningCommentId] = useState<number | null>(null);
     const [showPinModal, setShowPinModal] = useState<number | null>(null);
     const [isCopied, setIsCopied] = useState(false);
+
+    const postMenuRef = useRef<HTMLDivElement>(null);
+    const commentMenuRef = useRef<HTMLDivElement>(null);
+    const commentInputRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (showPostMenu && postMenuRef.current && !postMenuRef.current.contains(event.target as Node)) {
+                setShowPostMenu(false);
+            }
+            if (showCommentMenu !== null && commentMenuRef.current && !commentMenuRef.current.contains(event.target as Node)) {
+                setShowCommentMenu(null);
+            }
+        }
+        
+        function handleScroll() {
+            if (showPostMenu) setShowPostMenu(false);
+            if (showCommentMenu !== null) setShowCommentMenu(null);
+        }
+
+        document.addEventListener("mousedown", handleClickOutside);
+        window.addEventListener("scroll", handleScroll, { passive: true });
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, [showPostMenu, showCommentMenu]);
 
     useEffect(() => {
         const fetchPostDetails = async () => {
@@ -113,6 +211,7 @@ export default function PostDetail() {
                 console.error("Failed to fetch post details", err);
             } finally {
                 setLoading(false);
+                setShowSkeleton(false);
             }
         };
 
@@ -120,6 +219,18 @@ export default function PostDetail() {
             fetchPostDetails();
         }
     }, [postId]);
+
+    // Delay showing the skeleton loading state by 200ms to avoid flashes on fast connections
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (loading) {
+            timer = setTimeout(() => setShowSkeleton(true), 200);
+        } else {
+            setShowSkeleton(false);
+        }
+
+        return () => clearTimeout(timer);
+    }, [loading]);
 
     const handleAddComment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -132,10 +243,20 @@ export default function PostDetail() {
             });
             setComments([...comments, res.data]);
             setNewComment("");
+            setReplyingToCommentId(null);
         } catch (err) {
             console.error("Failed to add comment", err);
         } finally {
             setSubmittingComment(false);
+        }
+    };
+
+    const handleReply = (commentId: number, username: string) => {
+        setReplyingToCommentId(commentId);
+        setNewComment(`@${username} `);
+        if (commentInputRef.current) {
+            commentInputRef.current.focus();
+            commentInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     };
 
@@ -274,7 +395,11 @@ export default function PostDetail() {
     };
 
     if (loading) {
-        return <div className="text-center py-12 text-foreground-muted animate-pulse">Loading discussion...</div>;
+        return (
+            <div className={`max-w-3xl mx-auto space-y-8 transition-opacity duration-500 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
+                {showSkeleton ? <SkeletonPostCard /> : <div className="h-64" />}
+            </div>
+        );
     }
 
     if (!post) {
@@ -313,7 +438,7 @@ export default function PostDetail() {
 
             <article className="bg-surface rounded-xl p-5 md:p-6 shadow-sm border border-border-subtle relative">
                 {user && (
-                    <div className="absolute top-4 right-4 md:top-5 md:right-5">
+                    <div className="absolute top-4 right-4 md:top-5 md:right-5" ref={postMenuRef}>
                         <button
                             onClick={() => setShowPostMenu(!showPostMenu)}
                             className="text-foreground-muted hover:text-foreground p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
@@ -435,17 +560,38 @@ export default function PostDetail() {
                 <h3 className="text-xl font-bold text-foreground">Comments ({comments.length})</h3>
 
                 {user ? (
-                    <form onSubmit={handleAddComment} className="flex gap-4 items-start bg-surface p-6 rounded-xl border border-border-subtle">
-                        <div className="w-8 h-8 rounded-full bg-brand text-surface flex items-center justify-center font-bold flex-shrink-0">
+                    <form onSubmit={handleAddComment} className="flex gap-4 items-start bg-surface p-6 rounded-xl border border-border-subtle flex-col md:flex-row">
+                        <div className="hidden md:flex w-8 h-8 rounded-full bg-brand text-surface items-center justify-center font-bold flex-shrink-0 mt-2">
                             {user.username?.charAt(0).toUpperCase()}
                         </div>
-                        <div className="flex-1 space-y-3">
+                        <div className="flex-1 w-full space-y-3">
+                            {replyingToCommentId && (
+                                <div className="flex justify-between items-start bg-surface p-3 rounded-lg border-l-4 border-l-brand/40 border border-border-subtle shadow-sm mb-2 relative">
+                                    <div className="flex-1 min-w-0 pr-6 space-y-1">
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-foreground-muted">
+                                            <span>Replying to {comments.find((c: Comment) => c.id === replyingToCommentId)?.owner.username}</span>
+                                        </div>
+                                        <div className="text-sm text-foreground-muted italic truncate">
+                                            {comments.find((c: Comment) => c.id === replyingToCommentId)?.content.slice(0, 100)}
+                                            {(comments.find((c: Comment) => c.id === replyingToCommentId)?.content.length || 0) > 100 ? "..." : ""}
+                                        </div>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setReplyingToCommentId(null)}
+                                        className="absolute top-2 right-2 text-foreground-muted hover:text-foreground p-1 transition-colors cursor-pointer"
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    </button>
+                                </div>
+                            )}
                             <MarkdownTextarea
-                                placeholder="Add to the discussion... (Markdown Supported)"
+                                ref={commentInputRef}
+                                placeholder="Add to the discussion... (Type @ to mention)"
                                 value={newComment}
                                 onValueChange={setNewComment}
+                                knownUsers={Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as {id: number, username: string}[]}
                                 className="min-h-[80px]"
-                                required
                             />
                             <div className="flex justify-between items-center mt-2">
                                 <p className="text-xs text-foreground-muted">Markdown supported</p>
@@ -505,10 +651,17 @@ export default function PostDetail() {
                                                     </span>
                                                 </div>
 
-                                                <div className="relative">
+                                                <button
+                                                    onClick={() => handleReply(comment.id, comment.owner.username)}
+                                                    className="text-xs font-medium text-foreground-muted hover:text-foreground transition-colors cursor-pointer ml-1"
+                                                >
+                                                    Reply
+                                                </button>
+
+                                                <div className="relative" ref={showCommentMenu === comment.id ? commentMenuRef : null}>
                                                     <button
                                                         onClick={() => setShowCommentMenu(showCommentMenu === comment.id ? null : comment.id)}
-                                                        className="text-foreground-muted hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-background cursor-pointer"
+                                                        className={`text-foreground-muted hover:text-foreground transition-opacity p-1 rounded-md hover:bg-background cursor-pointer ${showCommentMenu === comment.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                                                     </button>
@@ -560,7 +713,7 @@ export default function PostDetail() {
                                         </div>
                                     ) : (
                                         <div className="markdown-content text-foreground text-sm">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.content}</ReactMarkdown>
+                                            {renderCommentContent(comment.content, Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as {id: number, username: string}[])}
                                         </div>
                                     )}
                                 </div>

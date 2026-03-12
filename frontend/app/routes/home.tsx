@@ -66,7 +66,7 @@ function CustomSelect({ value, onChange, options, className = "" }: { value: str
         <svg className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
 
-      <div className={`absolute left-0 top-full mt-1 w-full bg-surface rounded-xl shadow-lg border border-border-subtle z-50 overflow-hidden transition-all duration-200 origin-top ${isOpen ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+      <div className={`absolute left-0 top-full mt-1 w-full bg-surface rounded-xl shadow-lg border border-border-subtle z-40 overflow-hidden transition-all duration-200 origin-top ${isOpen ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
         <div className="py-1">
           {options.map(opt => (
             <button
@@ -85,12 +85,45 @@ function CustomSelect({ value, onChange, options, className = "" }: { value: str
   );
 }
 
+function SkeletonPostCard({ index = 0 }: { index?: number }) {
+  // Use index to deterministically but organically stagger the fade-in and set widths
+  const delay = `${index * 100}ms`;
+  const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
+  const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
+  const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
+
+  return (
+    <div
+      className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
+      style={{ animationDelay: delay }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
+      </div>
+      <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
+      <div className="space-y-2 mb-4">
+        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
+        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
+          <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search");
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<string[]>(["unknown"]);
+  
+  const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(false);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -99,7 +132,6 @@ export default function Home() {
   // Accordion state
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   const [newTitle, setNewTitle] = useState("");
@@ -122,6 +154,7 @@ export default function Home() {
       console.error("Failed to fetch posts", err);
     } finally {
       setLoading(false);
+      setShowSkeleton(false);
     }
   };
 
@@ -149,6 +182,18 @@ export default function Home() {
   useEffect(() => {
     fetchPosts();
   }, [searchQuery, categoryFilter, sortFilter]);
+
+  // Delay showing the skeleton loading state by 200ms
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => setShowSkeleton(true), 200);
+    } else {
+      setShowSkeleton(false);
+    }
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,7 +304,15 @@ export default function Home() {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-12 text-foreground-muted animate-pulse">Loading discussions...</div>
+          showSkeleton ? (
+            <div className={`transition-opacity duration-500 space-y-4 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
+              {[...Array(5)].map((_, i) => (
+                <SkeletonPostCard key={i} index={i} />
+              ))}
+            </div>
+          ) : (
+             <div className="h-[800px]" />
+          )
         ) : posts.length === 0 ? (
           <div className="text-center py-12 bg-surface rounded-xl border border-border-subtle text-foreground-muted">
             No discussions yet. Be the first to start one!

@@ -16,6 +16,17 @@ export default function Register() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        
+        if (!email.trim() || !username.trim() || !password.trim()) {
+            setError("All fields are required.");
+            return;
+        }
+
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters.");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -78,7 +89,6 @@ export default function Register() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                        required
                     />
                 </div>
 
@@ -89,7 +99,6 @@ export default function Register() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                        required
                     />
                 </div>
 
@@ -100,8 +109,6 @@ export default function Register() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                        minLength={6}
-                        required
                     />
                 </div>
 

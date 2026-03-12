@@ -1,12 +1,97 @@
-import React, { useRef } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef } from 'react';
 
 type MarkdownTextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
     value: string;
     onValueChange: (val: string) => void;
+    knownUsers?: { id: number; username: string }[];
 };
 
-export default function MarkdownTextarea({ value, onValueChange, className = "", ...props }: MarkdownTextareaProps) {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+const MarkdownTextarea = forwardRef<HTMLTextAreaElement, MarkdownTextareaProps>(
+    ({ value, onValueChange, className = "", knownUsers = [], ...props }, ref) => {
+        const innerRef = useRef<HTMLTextAreaElement>(null);
+        
+        // Expose innerRef to the parent through the forwarded ref
+        useImperativeHandle(ref, () => innerRef.current as HTMLTextAreaElement);
+
+        const textareaRef = innerRef;
+
+        // Mention state
+        const [mentionOpen, setMentionOpen] = React.useState(false);
+        const [mentionQuery, setMentionQuery] = React.useState("");
+        const [selectedIndex, setSelectedIndex] = React.useState(0);
+        const [mentionStart, setMentionStart] = React.useState(0);
+
+        const filteredUsers = React.useMemo(() => {
+            if (!mentionOpen) return [];
+            return knownUsers
+                .filter(u => u.username.toLowerCase().includes(mentionQuery.toLowerCase()))
+                .slice(0, 5);
+        }, [mentionOpen, mentionQuery, knownUsers]);
+
+        React.useEffect(() => {
+            setSelectedIndex(0);
+        }, [mentionQuery, mentionOpen]);
+
+        const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            const val = e.target.value;
+            onValueChange(val);
+
+            // Check if we are typing a mention
+            const cursor = e.target.selectionStart;
+            const textBeforeCursor = val.substring(0, cursor);
+            
+            // Regex to find an @ that is either at the start of the string or preceded by whitespace
+            // followed by alphanumeric characters until the cursor
+            const match = /(?:^|\s)@([a-zA-Z0-9_]*)$/.exec(textBeforeCursor);
+            
+            if (match) {
+                setMentionOpen(true);
+                setMentionQuery(match[1]);
+                setMentionStart(cursor - match[1].length - 1); // Index of the @
+            } else {
+                setMentionOpen(false);
+            }
+        };
+
+        const handleSelectMention = (username: string) => {
+            if (!textareaRef.current) return;
+            
+            const beforeMention = value.substring(0, mentionStart);
+            const afterMention = value.substring(textareaRef.current.selectionStart);
+            const newText = beforeMention + `@${username} ` + afterMention;
+            
+            onValueChange(newText);
+            setMentionOpen(false);
+            
+            // Restore cursor after the inserted space
+            const newCursor = mentionStart + username.length + 2;
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    textareaRef.current.focus();
+                    textareaRef.current.setSelectionRange(newCursor, newCursor);
+                }
+            }, 0);
+        };
+
+        const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            if (!mentionOpen) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev + 1) % filteredUsers.length);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedIndex(prev => (prev - 1 + filteredUsers.length) % filteredUsers.length);
+            } else if (e.key === 'Enter') {
+                if (filteredUsers.length > 0) {
+                    e.preventDefault();
+                    handleSelectMention(filteredUsers[selectedIndex].username);
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                setMentionOpen(false);
+            }
+        };
 
     const insertText = (before: string, after: string = '') => {
         const textarea = textareaRef.current;
@@ -63,13 +148,45 @@ export default function MarkdownTextarea({ value, onValueChange, className = "",
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
                 </button>
             </div>
-            <textarea
-                ref={textareaRef}
-                value={value}
-                onChange={(e) => onValueChange(e.target.value)}
-                className="w-full px-4 py-3 bg-background border-0 focus:ring-0 outline-none resize-y text-foreground placeholder-[var(--theme-foreground-muted)] min-h-[100px]"
-                {...props}
-            />
+            <div className="relative w-full">
+                <textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={handleTextChange}
+                    onKeyDown={(e) => {
+                        handleKeyDown(e);
+                        if (props.onKeyDown) props.onKeyDown(e);
+                    }}
+                    className="w-full px-4 py-3 bg-background border-0 focus:ring-0 outline-none resize-y text-foreground placeholder-[var(--theme-foreground-muted)] min-h-[100px]"
+                    {...props}
+                />
+                
+                {mentionOpen && filteredUsers.length > 0 && (
+                    <div className="absolute bottom-full left-4 mb-2 min-w-[200px] bg-surface border border-border-subtle rounded-xl shadow-lg overflow-hidden z-20">
+                        {filteredUsers.map((u, i) => (
+                            <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => handleSelectMention(u.username)}
+                                className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${
+                                    i === selectedIndex 
+                                        ? "bg-brand/10 text-brand font-medium" 
+                                        : "text-foreground hover:bg-surface-hover hover:text-brand"
+                                }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded-full bg-brand/10 flex items-center justify-center font-bold text-[10px] text-brand uppercase">
+                                        {u.username.charAt(0)}
+                                    </div>
+                                    {u.username}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
-}
+});
+
+export default MarkdownTextarea;
