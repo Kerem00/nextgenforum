@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Response
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 import asyncio
 from typing import Annotated
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import func
 from . import models, schemas, database, consumer, auth
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,7 +54,7 @@ async def create_post(
     # Eager load likes and owner for the response schema
     result = await db.execute(
         select(models.Post)
-        .options(selectinload(models.Post.likes), selectinload(models.Post.owner))
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
         .where(models.Post.id == db_post.id)
     )
     return result.scalar_one_or_none()
@@ -65,7 +66,7 @@ async def get_posts(
     sort: str | None = "recent",
     db: AsyncSession = Depends(database.get_db)
 ):
-    query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner))
+    query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
     
     if search:
         query = query.where(models.Post.title.ilike(f"%{search}%"))
@@ -94,8 +95,12 @@ async def get_user_replica(user_id: int, db: AsyncSession = Depends(database.get
     result = await db.execute(
         select(models.User)
         .options(
-            selectinload(models.User.posts).selectinload(models.Post.likes), 
-            selectinload(models.User.comments).selectinload(models.Comment.likes)
+            selectinload(models.User.posts).selectinload(models.Post.likes),
+            selectinload(models.User.posts).selectinload(models.Post.owner),
+            selectinload(models.User.posts).selectinload(models.Post.comments),
+            selectinload(models.User.comments).selectinload(models.Comment.likes),
+            selectinload(models.User.comments).selectinload(models.Comment.owner),
+            selectinload(models.User.comments).selectinload(models.Comment.post)
         )
         .where(models.User.id == user_id)
     )
@@ -125,7 +130,7 @@ async def create_comment(
     # Needs likes array and owner for schema
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == db_comment.id)
     )
     return result.scalar_one_or_none()
@@ -134,7 +139,7 @@ async def create_comment(
 async def get_comments(post_id: int, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.post_id == post_id)
     )
     comments = list(result.scalars().all())
@@ -151,7 +156,7 @@ async def update_post(
 ):
     result = await db.execute(
         select(models.Post)
-        .options(selectinload(models.Post.likes), selectinload(models.Post.owner))
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
         .where(models.Post.id == post_id)
     )
     post = result.scalar_one_or_none()
@@ -178,7 +183,7 @@ async def update_comment(
 ):
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == comment_id)
     )
     comment = result.scalar_one_or_none()
@@ -202,7 +207,7 @@ async def pin_comment(
 ):
     result = await db.execute(
         select(models.Comment)
-        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner))
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == comment_id)
     )
     comment = result.scalar_one_or_none()
@@ -327,3 +332,62 @@ async def unlike_comment(
         await db.commit()
         return {"message": "Comment unliked"}
     return {"message": "Like not found"}
+
+@app.delete("/posts/{post_id}", status_code=204)
+async def admin_delete_post(
+    post_id: int,
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.Post).where(models.Post.id == post_id))
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    await db.delete(post)
+    await db.commit()
+    return Response(status_code=204)
+
+@app.delete("/comments/{comment_id}", status_code=204)
+async def admin_delete_comment(
+    comment_id: int,
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.Comment).where(models.Comment.id == comment_id))
+    comment = result.scalar_one_or_none()
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    await db.delete(comment)
+    await db.commit()
+    return Response(status_code=204)
+
+@app.get("/admin/stats")
+async def get_admin_stats(
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    total_posts = (await db.execute(select(func.count(models.Post.id)))).scalar() or 0
+    total_comments = (await db.execute(select(func.count(models.Comment.id)))).scalar() or 0
+    total_users = (await db.execute(select(func.count(models.User.id)))).scalar() or 0
+
+    twenty_four_hours_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+    posts_today = (await db.execute(
+        select(func.count(models.Post.id)).where(models.Post.created_at >= twenty_four_hours_ago)
+    )).scalar() or 0
+
+    top_category_result = await db.execute(
+        select(models.Post.category, func.count(models.Post.id).label("cnt"))
+        .group_by(models.Post.category)
+        .order_by(func.count(models.Post.id).desc())
+        .limit(1)
+    )
+    top_row = top_category_result.first()
+    top_category = top_row[0] if top_row else "N/A"
+
+    return {
+        "total_posts": total_posts,
+        "total_comments": total_comments,
+        "total_users": total_users,
+        "posts_today": posts_today,
+        "top_category": top_category
+    }

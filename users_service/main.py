@@ -1,6 +1,6 @@
 from typing import Annotated
 from datetime import timedelta
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Response
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
@@ -13,6 +13,32 @@ from fastapi.middleware.cors import CORSMiddleware
 async def lifespan(app: FastAPI):
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+    
+    # Auto-create admin user if not exists
+    async with database.AsyncSessionLocal() as session:
+        result = await session.execute(select(models.User).where(models.User.username == "admin"))
+        admin_user = result.scalar_one_or_none()
+        if not admin_user:
+            hashed_password = auth.get_password_hash("admin")
+            admin_user = models.User(
+                email="admin@forum.local",
+                username="admin",
+                hashed_password=hashed_password
+            )
+            session.add(admin_user)
+            await session.commit()
+            print("Admin user created automatically.")
+
+            # Publish event so posts_service gets the admin user replica
+            await session.refresh(admin_user)
+            await producer.publish_event("user_created", {
+                "id": admin_user.id,
+                "email": admin_user.email,
+                "username": admin_user.username
+            })
+        else:
+            print("Admin user already exists.")
+    
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -78,10 +104,17 @@ async def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Check if user is banned
+    if user.is_banned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been banned."
+        )
         
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
-        data={"sub": user.email, "user_id": user.id}, expires_delta=access_token_expires
+        data={"sub": user.email, "user_id": user.id, "username": user.username}, expires_delta=access_token_expires
     )
     return schemas.Token(access_token=access_token, token_type="bearer")
 
@@ -107,3 +140,27 @@ async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession =
     })
 
     return db_user
+
+@app.get("/admin/users", response_model=list[schemas.AdminUser])
+async def get_all_users(
+    current_user: Annotated[schemas.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.User).order_by(models.User.created_at.desc()))
+    return result.scalars().all()
+
+@app.post("/admin/users/{user_id}/ban", response_model=schemas.AdminUser)
+async def toggle_ban_user(
+    user_id: int,
+    current_user: Annotated[schemas.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_banned = not user.is_banned
+    await db.commit()
+    await db.refresh(user)
+    return user

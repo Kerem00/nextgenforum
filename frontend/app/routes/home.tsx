@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
+import MarkdownTextarea from "../components/MarkdownTextarea";
+import { hashColor } from "../utils/hashColor";
 
 type Post = {
   id: number;
@@ -17,6 +19,7 @@ type Post = {
     username: string;
   };
   likes: any[];
+  comment_count: number;
 };
 
 function timeAgo(dateString: string) {
@@ -64,7 +67,7 @@ function CustomSelect({ value, onChange, options, className = "" }: { value: str
         <svg className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </button>
 
-      <div className={`absolute left-0 top-full mt-1 w-full bg-surface rounded-xl shadow-lg border border-border-subtle z-50 overflow-hidden transition-all duration-200 origin-top ${isOpen ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+      <div className={`absolute left-0 top-full mt-1 w-full bg-surface rounded-xl shadow-lg border border-border-subtle z-40 overflow-hidden transition-all duration-200 origin-top ${isOpen ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
         <div className="py-1">
           {options.map(opt => (
             <button
@@ -83,12 +86,45 @@ function CustomSelect({ value, onChange, options, className = "" }: { value: str
   );
 }
 
+function SkeletonPostCard({ index = 0 }: { index?: number }) {
+  // Use index to deterministically but organically stagger the fade-in and set widths
+  const delay = `${index * 100}ms`;
+  const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
+  const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
+  const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
+
+  return (
+    <div
+      className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
+      style={{ animationDelay: delay }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
+      </div>
+      <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
+      <div className="space-y-2 mb-4">
+        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
+        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
+      </div>
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
+          <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("search");
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [categories, setCategories] = useState<string[]>(["unknown"]);
+
+  const [loading, setLoading] = useState(true);
+  const [showSkeleton, setShowSkeleton] = useState(false);
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -97,13 +133,24 @@ export default function Home() {
   // Accordion state
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState("unknown");
   const [submitting, setSubmitting] = useState(false);
+
+  const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+
+  const handleAdminDeletePost = async (postId: number) => {
+    try {
+      await postsClient.delete(`/posts/${postId}`);
+      setPosts(posts.filter(p => p.id !== postId));
+      setDeletingPostId(null);
+    } catch (err) {
+      console.error("Failed to delete post", err);
+    }
+  };
 
   const fetchPosts = async () => {
     try {
@@ -120,6 +167,7 @@ export default function Home() {
       console.error("Failed to fetch posts", err);
     } finally {
       setLoading(false);
+      setShowSkeleton(false);
     }
   };
 
@@ -147,6 +195,18 @@ export default function Home() {
   useEffect(() => {
     fetchPosts();
   }, [searchQuery, categoryFilter, sortFilter]);
+
+  // Delay showing the skeleton loading state by 200ms
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (loading) {
+      timer = setTimeout(() => setShowSkeleton(true), 200);
+    } else {
+      setShowSkeleton(false);
+    }
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,11 +284,17 @@ export default function Home() {
                 />
               </div>
               <div>
-                <textarea
-                  placeholder="What's on your mind?"
+                <MarkdownTextarea
+                  placeholder="What's on your mind? (Markdown Supported)"
                   value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all min-h-[100px] text-foreground placeholder-[var(--theme-foreground-muted)]"
+                  onValueChange={setNewContent}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      if (!newContent.trim() || submitting) return;
+                      handleCreatePost(e as unknown as React.FormEvent);
+                    }
+                  }}
                   required
                 />
               </div>
@@ -241,7 +307,8 @@ export default function Home() {
                   className="w-48"
                 />
               </div>
-              <div className="flex justify-end">
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-xs text-foreground-muted">Markdown supported · Ctrl+Enter to submit</p>
                 <button
                   type="submit"
                   disabled={submitting}
@@ -257,7 +324,15 @@ export default function Home() {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-12 text-foreground-muted animate-pulse">Loading discussions...</div>
+          showSkeleton ? (
+            <div className={`transition-opacity duration-500 space-y-4 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
+              {[...Array(5)].map((_, i) => (
+                <SkeletonPostCard key={i} index={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="h-[800px]" />
+          )
         ) : posts.length === 0 ? (
           <div className="text-center py-12 bg-surface rounded-xl border border-border-subtle text-foreground-muted">
             No discussions yet. Be the first to start one!
@@ -269,6 +344,35 @@ export default function Home() {
               to={`/posts/${post.id}`}
               className="block bg-surface p-6 rounded-xl border border-border-subtle hover:border-brand/40 hover:shadow-md transition-all group relative"
             >
+              {user?.username === "admin" && (
+                <div className="absolute top-4 right-4 z-10" onClick={(e) => e.preventDefault()}>
+                  {deletingPostId === post.id ? (
+                    <div className="flex items-center gap-2 bg-surface border border-red-500/30 rounded-lg px-3 py-1.5 shadow-sm">
+                      <span className="text-xs font-medium text-red-500">Delete?</span>
+                      <button
+                        onClick={() => handleAdminDeletePost(post.id)}
+                        className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setDeletingPostId(null)}
+                        className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-surface-hover transition-colors"
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeletingPostId(post.id)}
+                      className="text-red-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-500/10 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                      title="Delete post (Admin)"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
@@ -285,17 +389,25 @@ export default function Home() {
               </p>
               <div className="mt-4 flex items-center justify-between text-sm text-foreground-muted">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-brand/10 border border-brand/20 flex items-center justify-center font-bold text-xs text-brand uppercase">
+                  <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
                     {post.owner.username.charAt(0)}
                   </div>
                   <span>{post.owner.username}</span>
                 </div>
 
                 {/* Visual Fake Like Counter for Feeds - Real Interaction happens on Post detail*/}
-                <div className="flex flex-col items-center">
+                <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5 text-foreground">
-                    <span className="text-lg">♥</span>
-                    <span className="font-medium">{post.likes?.length || 0}</span>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                    </svg>
+                    <span className="font-medium">{post.comment_count || 0}</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <span className="text-lg">♥</span>
+                      <span className="font-medium">{post.likes?.length || 0}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -306,3 +418,4 @@ export default function Home() {
     </div>
   );
 }
+
