@@ -1,10 +1,12 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
+import { useAdminNotifications } from "../context/AdminNotificationContext";
 import { isAdmin } from "../utils/permissions";
 
 export default function Layout() {
     const { user, logout } = useAuth();
+    const { pendingCount } = useAdminNotifications();
     const [isDark, setIsDark] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
@@ -92,8 +94,13 @@ export default function Layout() {
                                     Profile
                                 </Link>
                                 {isAdmin(user) && (
-                                    <Link to="/admin" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors">
+                                    <Link to="/admin" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors flex items-center gap-1.5">
                                         Admin Panel
+                                        {pendingCount > 0 && (
+                                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                                {pendingCount}
+                                            </span>
+                                        )}
                                     </Link>
                                 )}
                                 <div className="w-px h-4 bg-border-subtle mx-2"></div>
@@ -170,7 +177,16 @@ export default function Layout() {
                             {user ? (
                                 <>
                                     <Link to={`/users/${user.id}`} className="text-sm font-medium text-foreground hover:text-brand p-2 rounded-md hover:bg-surface-hover">Profile</Link>
-                                    {isAdmin(user) && <Link to="/admin" className="text-sm font-medium text-red-500 hover:text-red-600 p-2 rounded-md hover:bg-red-500/10">Admin Panel</Link>}
+                                    {isAdmin(user) && (
+                                        <Link to="/admin" className="text-sm font-medium text-red-500 hover:text-red-600 p-2 rounded-md hover:bg-red-500/10 flex items-center justify-between">
+                                            Admin Panel
+                                            {pendingCount > 0 && (
+                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                                    {pendingCount}
+                                                </span>
+                                            )}
+                                        </Link>
+                                    )}
                                     <button onClick={logout} className="text-left text-sm font-medium text-red-500 p-2 rounded-md hover:bg-red-500/10 cursor-pointer">Logout ({user.username})</button>
                                 </>
                             ) : (

@@ -11,6 +11,8 @@ import type { Route } from "./+types/root";
 import "./app.css";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import { AdminNotificationProvider } from "./context/AdminNotificationContext";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -37,7 +39,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <AuthProvider>
           <ToastProvider>
-            {children}
+            <NotificationProvider>
+              <AdminNotificationProvider>
+                {children}
+              </AdminNotificationProvider>
+            </NotificationProvider>
           </ToastProvider>
         </AuthProvider>
         <ScrollRestoration />

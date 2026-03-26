@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { CustomSelect } from "./ui/CustomSelect";
+import { sendAdminNotification } from "../utils/notificationHelpers";
 
 type ReportModalProps = {
     isOpen: boolean;
     onClose: () => void;
     entityType: 'post' | 'comment';
     entityId: number;
+    postId?: number; // Needed for comment reports to navigate to the post
 };
 
-export function ReportModal({ isOpen, onClose, entityType, entityId }: ReportModalProps) {
+export function ReportModal({ isOpen, onClose, entityType, entityId, postId }: ReportModalProps) {
     const [reason, setReason] = useState("spam");
     const [context, setContext] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -19,8 +21,21 @@ export function ReportModal({ isOpen, onClose, entityType, entityId }: ReportMod
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        // Stub: Mock wait
-        setTimeout(() => {
+        
+        try {
+            // Emit a new_report notification to admins
+            sendAdminNotification({
+                type: "new_report",
+                actorUsername: "A user", // We don't necessarily need the reporter's name here if anonymous-ish
+                metadata: {
+                    entityType,
+                    entityId,
+                    postId,
+                    reason,
+                    context
+                }
+            });
+
             console.log(`Report submitted: ${entityType} ${entityId}, Reason: ${reason}, Context: ${context}`);
             setIsSubmitting(false);
             setIsSubmitted(true);
@@ -28,7 +43,10 @@ export function ReportModal({ isOpen, onClose, entityType, entityId }: ReportMod
                 setIsSubmitted(false);
                 onClose();
             }, 2000);
-        }, 1000);
+        } catch (err) {
+            console.error("Failed to submit report", err);
+            setIsSubmitting(false);
+        }
     };
 
     return (

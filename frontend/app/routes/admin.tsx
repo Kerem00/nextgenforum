@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { postsClient, usersClient } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useAdminNotifications } from "../context/AdminNotificationContext";
 import { hashColor } from "../utils/hashColor";
 import { isAdmin } from "../utils/permissions";
 import { timeAgo } from "../utils/timeAgo";
@@ -40,8 +41,9 @@ type Post = {
 export default function Admin() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { notifications, markAsRead } = useAdminNotifications();
 
-    const [activePage, setActivePage] = useState<"overview" | "users" | "posts">("overview");
+    const [activePage, setActivePage] = useState<"overview" | "users" | "posts" | "moderation">("overview");
 
     // Overview state
     const [stats, setStats] = useState<Stats | null>(null);
@@ -139,6 +141,9 @@ export default function Admin() {
         )},
         { key: "posts" as const, label: "Posts", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        )},
+        { key: "moderation" as const, label: "Reports", icon: (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
         )},
     ];
 
@@ -421,6 +426,85 @@ export default function Admin() {
                                 )}
                             </Card>
                         )}
+                    </div>
+                )}
+                {activePage === "moderation" && (
+                    <div className="space-y-6 max-w-5xl">
+                        <div>
+                            <h2 className="text-2xl font-bold text-foreground">Moderation Reports</h2>
+                            <p className="text-sm text-foreground-muted mt-1">Review and act on user flags</p>
+                        </div>
+
+                        <Card padding="p-0" className="overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-border-subtle bg-background/50">
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Type</th>
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Reason</th>
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Reporter</th>
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Date</th>
+                                        <th className="text-right px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {notifications
+                                        .filter(n => n.type === "new_report" || n.type === "flagged_content")
+                                        .map((n, i) => (
+                                            <tr key={n.id} className={`border-b border-border-subtle last:border-b-0 hover:bg-surface-hover/50 transition-colors ${i % 2 === 0 ? '' : 'bg-background/30'} ${!n.read ? 'bg-brand/5' : ''}`}>
+                                                <td className="px-6 py-3 capitalize font-medium text-foreground">
+                                                    {n.metadata?.entityType || "content"}
+                                                </td>
+                                                <td className="px-6 py-3 text-foreground-muted capitalize">
+                                                    {n.metadata?.reason?.replace('_', ' ') || "Suspected violation"}
+                                                </td>
+                                                <td className="px-6 py-3 text-foreground-muted">{n.actorUsername || "Anonymous"}</td>
+                                                <td className="px-6 py-3 text-foreground-muted">{timeAgo(n.createdAt)}</td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <div className="inline-flex items-center gap-2">
+                                                        <Link
+                                                            to={n.metadata?.entityType === 'post' ? `/posts/${n.metadata.entityId}` : `/posts/${n.metadata?.postId}`}
+                                                            onClick={() => markAsRead(n.id)}
+                                                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand/10 text-brand hover:bg-brand/20 border border-brand/20 transition-colors"
+                                                        >
+                                                            Visit
+                                                        </Link>
+                                                        <button
+                                                            onClick={() => markAsRead(n.id)}
+                                                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-green-500/10 text-green-500 hover:bg-green-500/20 border border-green-500/20 transition-colors cursor-pointer"
+                                                        >
+                                                            Resolve
+                                                        </button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    if (n.metadata?.entityType === 'post') {
+                                                                        await postsClient.delete(`/posts/${n.metadata.entityId}`);
+                                                                    } else if (n.metadata?.entityType === 'comment') {
+                                                                        await postsClient.delete(`/comments/${n.metadata.entityId}`);
+                                                                    }
+                                                                    markAsRead(n.id);
+                                                                } catch (err) {
+                                                                    console.error("Failed to delete content", err);
+                                                                }
+                                                            }}
+                                                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 transition-colors cursor-pointer"
+                                                        >
+                                                            Delete Content
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                            {notifications.filter(n => n.type === "new_report" || n.type === "flagged_content").length === 0 && (
+                                <div className="text-center py-12 text-foreground-muted flex flex-col items-center">
+                                    <svg className="w-12 h-12 mb-4 text-border-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    <p className="text-sm font-medium">No active reports</p>
+                                    <p className="text-xs mt-1">Content flagged by users or AI will appear here.</p>
+                                </div>
+                            )}
+                        </Card>
                     </div>
                 )}
             </main>

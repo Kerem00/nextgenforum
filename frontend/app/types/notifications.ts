@@ -39,4 +39,11 @@ export type AdminNotification = {
   actorId?: number;
   targetId?: number; // E.g., reported post/comment ID or banned user ID
   message: string;
+  metadata?: {
+    entityType?: 'post' | 'comment';
+    entityId?: number;
+    reason?: string;
+    context?: string;
+    [key: string]: any;
+  };
 };

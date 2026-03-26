@@ -12,6 +12,7 @@ import { SkeletonCard } from "../components/ui/SkeletonCard";
 import { isAdmin as checkIsAdmin } from "../utils/permissions";
 import { Card } from "../components/ui/Card";
 import { sendUserNotification, extractMentions } from "../utils/notificationHelpers";
+import { ReportModal } from "../components/ReportModal";
 
 type Post = {
     id: number;
@@ -129,6 +130,9 @@ export default function PostDetail() {
 
     const [confirmDeletePost, setConfirmDeletePost] = useState(false);
     const [confirmDeleteCommentId, setConfirmDeleteCommentId] = useState<number | null>(null);
+
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportEntity, setReportEntity] = useState<{ type: 'post' | 'comment', id: number } | null>(null);
 
     const postMenuRef = useRef<HTMLDivElement>(null);
     const commentMenuRef = useRef<HTMLDivElement>(null);
@@ -498,6 +502,13 @@ export default function PostDetail() {
         }
     };
 
+    const handleReport = (type: 'post' | 'comment', id: number) => {
+        setReportEntity({ type, id });
+        setIsReportModalOpen(true);
+        setShowPostMenu(false);
+        setShowCommentMenu(null);
+    };
+
     if (loading) {
         return (
             <div className={`max-w-3xl mx-auto space-y-8 transition-opacity duration-500 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
@@ -585,7 +596,7 @@ export default function PostDetail() {
                             )}
                             {user.id !== post.owner_id && !isAdmin && (
                                 <button
-                                    onClick={() => alert("Report post clicked (no functionality yet)")}
+                                    onClick={() => handleReport('post', post.id)}
                                     className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                 >
                                     Report Post
@@ -839,7 +850,7 @@ export default function PostDetail() {
                                                         )}
                                                         {user.id !== comment.owner_id && !isAdmin && (
                                                             <button
-                                                                onClick={() => { alert("Report comment clicked (no functionality yet)"); setShowCommentMenu(null); }}
+                                                                onClick={() => handleReport('comment', comment.id)}
                                                                 className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                                             >
                                                                 Report Comment
@@ -886,6 +897,16 @@ export default function PostDetail() {
                     })}
                 </div>
             </section>
+
+            {reportEntity && (
+                <ReportModal
+                    isOpen={isReportModalOpen}
+                    onClose={() => setIsReportModalOpen(false)}
+                    entityType={reportEntity.type}
+                    entityId={reportEntity.id}
+                    postId={post.id}
+                />
+            )}
         </div>
     );
 }
