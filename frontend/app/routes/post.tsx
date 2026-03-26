@@ -7,6 +7,11 @@ import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import MarkdownTextarea from "../components/MarkdownTextarea";
 import { hashColor } from "../utils/hashColor";
+import { timeAgo } from "../utils/timeAgo";
+import { SkeletonCard } from "../components/ui/SkeletonCard";
+import { isAdmin as checkIsAdmin } from "../utils/permissions";
+import { Card } from "../components/ui/Card";
+import { sendUserNotification, extractMentions } from "../utils/notificationHelpers";
 
 type Post = {
     id: number;
@@ -40,31 +45,7 @@ type Comment = {
     likes: { owner_id: number }[];
 };
 
-function timeAgo(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    const years = Math.floor(diffInSeconds / 31536000);
-    if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
-
-    const months = Math.floor(diffInSeconds / 2592000);
-    if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
-
-    const weeks = Math.floor(diffInSeconds / 604800);
-    if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
-
-    const days = Math.floor(diffInSeconds / 86400);
-    if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-
-    const hours = Math.floor(diffInSeconds / 3600);
-    if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-
-    const minutes = Math.floor(diffInSeconds / 60);
-    if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-
-    return "just now";
-}
 
 function renderCommentContent(text: string, knownUsers: { id: number, username: string }[]) {
     // We replace @username with a special markdown link `[@username](mention:username)`
@@ -111,35 +92,7 @@ function renderCommentContent(text: string, knownUsers: { id: number, username: 
     );
 }
 
-function SkeletonPostCard({ index = 0 }: { index?: number }) {
-    // Use index to deterministically but organically stagger the fade-in and set widths
-    const delay = `${index * 100}ms`;
-    const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
-    const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
-    const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
 
-    return (
-        <div
-            className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
-            style={{ animationDelay: delay }}
-        >
-            <div className="flex items-center justify-between mb-2">
-                <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
-            </div>
-            <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
-            <div className="space-y-2 mb-4">
-                <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
-                <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
-                    <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 export default function PostDetail() {
     const { postId } = useParams();
@@ -181,12 +134,23 @@ export default function PostDetail() {
     const commentMenuRef = useRef<HTMLDivElement>(null);
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
-    const isAdmin = user?.username === "admin";
+    const isAdmin = checkIsAdmin(user);
 
     const handleAdminDeletePost = async () => {
-        if (!postId) return;
+        if (!postId || !post) return;
         try {
             await postsClient.delete(`/posts/${postId}`);
+
+            if (user && post.owner_id !== user.id) {
+                sendUserNotification(post.owner_id, {
+                    type: "post_removed_by_admin",
+                    actorUsername: user.username,
+                    actorId: user.id,
+                    postId: post.id,
+                    postTitle: post.title
+                });
+            }
+
             navigate("/");
         } catch (err) {
             console.error("Failed to delete post", err);
@@ -198,6 +162,19 @@ export default function PostDetail() {
             await postsClient.delete(`/comments/${commentId}`);
             setComments(comments.filter(c => c.id !== commentId));
             setConfirmDeleteCommentId(null);
+
+            const comment = comments.find(c => c.id === commentId);
+            if (user && post && comment && comment.owner_id !== user.id) {
+                sendUserNotification(comment.owner_id, {
+                    type: "comment_removed_by_admin",
+                    actorUsername: user.username,
+                    actorId: user.id,
+                    postId: post.id,
+                    postTitle: post.title,
+                    commentId: comment.id,
+                    commentPreview: comment.content.substring(0, 80)
+                });
+            }
         } catch (err) {
             console.error("Failed to delete comment", err);
         }
@@ -288,7 +265,52 @@ export default function PostDetail() {
             const res = await postsClient.post(`/posts/${postId}/comments`, {
                 content: finalContent
             });
-            setComments([...comments, res.data]);
+            const newCommentObj = res.data;
+            setComments([...comments, newCommentObj]);
+
+            if (user && post && post.owner_id !== user.id) {
+                sendUserNotification(post.owner_id, {
+                    type: "comment_on_your_post",
+                    actorUsername: user.username,
+                    actorId: user.id,
+                    postId: post.id,
+                    postTitle: post.title,
+                    commentId: newCommentObj.id,
+                    commentPreview: finalContent.substring(0, 80)
+                });
+            }
+            if (user && replyingToCommentId) {
+                const parentComment = comments.find((c: Comment) => c.id === replyingToCommentId);
+                if (parentComment && parentComment.owner_id !== user.id) {
+                    sendUserNotification(parentComment.owner_id, {
+                        type: "reply_to_your_comment",
+                        actorUsername: user.username,
+                        actorId: user.id,
+                        postId: post?.id,
+                        postTitle: post?.title,
+                        commentId: newCommentObj.id,
+                        commentPreview: finalContent.substring(0, 80)
+                    });
+                }
+            }
+            if (user) {
+                const mentions = extractMentions(newComment);
+                const uniqueMentionedUsers = Array.from(new Map(comments.map((c: Comment) => [c.owner.username.toLowerCase(), c.owner])).values())
+                    .filter(u => mentions.includes(u.username.toLowerCase()) && u.id !== user.id);
+
+                uniqueMentionedUsers.forEach(mentionedUser => {
+                    sendUserNotification(mentionedUser.id, {
+                        type: "mention",
+                        actorUsername: user.username,
+                        actorId: user.id,
+                        postId: post?.id,
+                        postTitle: post?.title,
+                        commentId: newCommentObj.id,
+                        commentPreview: finalContent.substring(0, 80)
+                    });
+                });
+            }
+
             setNewComment("");
             setReplyingToCommentId(null);
         } catch (err) {
@@ -320,6 +342,16 @@ export default function PostDetail() {
             } else {
                 await postsClient.post(`/posts/${postId}/like`);
                 setPost({ ...post, likes: [...(post.likes || []), { owner_id: user.id }] });
+
+                if (post.owner_id !== user.id) {
+                    sendUserNotification(post.owner_id, {
+                        type: "like_on_your_post",
+                        actorUsername: user.username,
+                        actorId: user.id,
+                        postId: post.id,
+                        postTitle: post.title
+                    });
+                }
             }
         } catch (err) {
             console.error("Failed to toggle post like", err);
@@ -367,6 +399,18 @@ export default function PostDetail() {
                 setComments(comments.map(c =>
                     c.id === commentId ? { ...c, likes: [...(c.likes || []), { owner_id: user.id }] } : c
                 ));
+
+                if (comment.owner_id !== user.id && post) {
+                    sendUserNotification(comment.owner_id, {
+                        type: "like_on_your_comment",
+                        actorUsername: user.username,
+                        actorId: user.id,
+                        postId: post.id,
+                        postTitle: post.title,
+                        commentId: comment.id,
+                        commentPreview: comment.content.substring(0, 80)
+                    });
+                }
             }
         } catch (err) {
             console.error("Failed to toggle comment like", err);
@@ -409,6 +453,19 @@ export default function PostDetail() {
             setPinningCommentId(commentId);
             const res = await postsClient.post(`/comments/${commentId}/pin`);
 
+            const comment = comments.find(c => c.id === commentId);
+            if (user && post && comment && comment.owner_id !== user.id && post.owner_id === user.id) {
+                sendUserNotification(comment.owner_id, {
+                    type: "comment_pinned",
+                    actorUsername: user.username,
+                    actorId: user.id,
+                    postId: post.id,
+                    postTitle: post.title,
+                    commentId: comment.id,
+                    commentPreview: comment.content.substring(0, 80)
+                });
+            }
+
             // Re-fetch comments to get updated strict order and pinned statuses natively from backend
             const commentsRes = await postsClient.get(`/posts/${postId}/comments`);
             setComments(commentsRes.data || []);
@@ -444,17 +501,17 @@ export default function PostDetail() {
     if (loading) {
         return (
             <div className={`max-w-3xl mx-auto space-y-8 transition-opacity duration-500 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
-                {showSkeleton ? <SkeletonPostCard /> : <div className="h-64" />}
+                {showSkeleton ? <SkeletonCard /> : <div className="h-64" />}
             </div>
         );
     }
 
     if (!post) {
         return (
-            <div className="text-center py-12 mt-8 bg-surface rounded-xl border border-border-subtle max-w-3xl mx-auto">
+            <Card padding="py-12" className="text-center mt-8 max-w-3xl mx-auto">
                 <h2 className="text-2xl font-bold text-foreground">Discussion not found</h2>
                 <Link to="/" className="text-brand hover:underline mt-4 inline-block">Return to home</Link>
-            </div>
+            </Card>
         );
     }
 
@@ -462,13 +519,22 @@ export default function PostDetail() {
 
     return (
         <div className="max-w-3xl mx-auto space-y-8">
-            <Link to="/" className="text-sm font-medium text-foreground-muted hover:text-foreground inline-flex items-center gap-2 mb-6 transition-colors">
-                ← Back to discussions
-            </Link>
+            <nav className="flex items-center gap-2 text-sm text-foreground-muted mb-6">
+                <Link to="/" className="hover:text-foreground transition-colors flex items-center gap-1">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    Home
+                </Link>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <Link to={`/?category=${post.category}`} className="hover:text-foreground transition-colors capitalize">
+                    {post.category}
+                </Link>
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <span className="text-foreground font-medium truncate max-w-[200px] sm:max-w-xs">{post.title}</span>
+            </nav>
 
             {showPinModal !== null && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-surface border border-border-subtle rounded-xl p-6 max-w-sm w-full shadow-lg">
+                    <Card padding="p-6" className="max-w-sm w-full shadow-lg">
                         <h3 className="text-lg font-bold text-foreground mb-2">Replace pinned comment?</h3>
                         <p className="text-sm text-foreground-muted mb-6">You can only pin one comment at a time. This will unpin the currently pinned comment.</p>
                         <div className="flex justify-end gap-3">
@@ -479,11 +545,11 @@ export default function PostDetail() {
                                 Replace
                             </button>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
-            <article className="bg-surface rounded-xl p-5 md:p-6 shadow-sm border border-border-subtle relative">
+            <Card padding="p-5 md:p-6" className="shadow-sm relative">
                 {user && (
                     <div className="absolute top-4 right-4 md:top-5 md:right-5" ref={postMenuRef}>
                         <button
@@ -493,7 +559,7 @@ export default function PostDetail() {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                         </button>
                         <div className={`absolute right-0 top-full mt-1 w-40 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showPostMenu ? 'opacity-100 scale-100 max-h-[200px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
-                            {user.id === post.owner_id && (
+                            {(user.id === post.owner_id || isAdmin) && (
                                 <button
                                     onClick={() => { setEditingPost(true); setEditPostTitle(post.title); setEditPostContent(post.content); setShowPostMenu(false); }}
                                     className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
@@ -618,68 +684,70 @@ export default function PostDetail() {
                         </div>
                     )}
                 </div>
-            </article>
+            </Card>
 
             <section className="space-y-6">
                 <h3 className="text-xl font-bold text-foreground">Comments ({comments.length})</h3>
 
                 {user ? (
-                    <form onSubmit={handleAddComment} className="flex gap-4 items-start bg-surface p-6 rounded-xl border border-border-subtle flex-col md:flex-row">
-                        <div className={`hidden md:flex w-8 h-8 rounded-full ${hashColor(user.username)} text-white items-center justify-center font-bold flex-shrink-0 mt-2`}>
-                            {user.username?.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex-1 w-full space-y-3">
-                            {replyingToCommentId && (
-                                <div className="flex justify-between items-start bg-surface p-3 rounded-lg border-l-4 border-l-brand/40 border border-border-subtle shadow-sm mb-2 relative">
-                                    <div className="flex-1 min-w-0 pr-6 space-y-1">
-                                        <div className="flex items-center gap-2 text-xs font-semibold text-foreground-muted">
-                                            <span>Replying to {comments.find((c: Comment) => c.id === replyingToCommentId)?.owner.username}</span>
+                    <Card padding="p-6">
+                        <form onSubmit={handleAddComment} className="flex gap-4 items-start flex-col md:flex-row">
+                            <div className={`hidden md:flex w-8 h-8 rounded-full ${hashColor(user.username)} text-white items-center justify-center font-bold flex-shrink-0 mt-2`}>
+                                {user.username?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 w-full space-y-3">
+                                {replyingToCommentId && (
+                                    <div className="flex justify-between items-start bg-surface p-3 rounded-lg border-l-4 border-l-brand/40 border border-border-subtle shadow-sm mb-2 relative">
+                                        <div className="flex-1 min-w-0 pr-6 space-y-1">
+                                            <div className="flex items-center gap-2 text-xs font-semibold text-foreground-muted">
+                                                <span>Replying to {comments.find((c: Comment) => c.id === replyingToCommentId)?.owner.username}</span>
+                                            </div>
+                                            <div className="text-sm text-foreground-muted italic truncate">
+                                                {comments.find((c: Comment) => c.id === replyingToCommentId)?.content.slice(0, 100)}
+                                                {(comments.find((c: Comment) => c.id === replyingToCommentId)?.content.length || 0) > 100 ? "..." : ""}
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-foreground-muted italic truncate">
-                                            {comments.find((c: Comment) => c.id === replyingToCommentId)?.content.slice(0, 100)}
-                                            {(comments.find((c: Comment) => c.id === replyingToCommentId)?.content.length || 0) > 100 ? "..." : ""}
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setReplyingToCommentId(null)}
+                                            className="absolute top-2 right-2 text-foreground-muted hover:text-foreground p-1 transition-colors cursor-pointer"
+                                        >
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        </button>
                                     </div>
+                                )}
+                                <MarkdownTextarea
+                                    ref={commentInputRef}
+                                    placeholder="Add to the discussion... (Type @ to mention)"
+                                    value={newComment}
+                                    onValueChange={setNewComment}
+                                    knownUsers={Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[]}
+                                    className="min-h-[80px]"
+                                    onKeyDown={(e) => {
+                                        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (!newComment.trim() || submittingComment) return;
+                                            handleAddComment(e as unknown as React.FormEvent);
+                                        }
+                                    }}
+                                />
+                                <div className="flex justify-between items-center mt-2">
+                                    <p className="text-xs text-foreground-muted">Markdown supported · Ctrl+Enter to submit</p>
                                     <button
-                                        type="button"
-                                        onClick={() => setReplyingToCommentId(null)}
-                                        className="absolute top-2 right-2 text-foreground-muted hover:text-foreground p-1 transition-colors cursor-pointer"
+                                        type="submit"
+                                        disabled={submittingComment}
+                                        className="rounded-md bg-brand px-5 py-2 text-sm font-medium text-surface shadow transition-colors hover:bg-brand-hover disabled:opacity-50 cursor-pointer"
                                     >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                        {submittingComment ? "Posting..." : "Comment"}
                                     </button>
                                 </div>
-                            )}
-                            <MarkdownTextarea
-                                ref={commentInputRef}
-                                placeholder="Add to the discussion... (Type @ to mention)"
-                                value={newComment}
-                                onValueChange={setNewComment}
-                                knownUsers={Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[]}
-                                className="min-h-[80px]"
-                                onKeyDown={(e) => {
-                                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                                        e.preventDefault();
-                                        if (!newComment.trim() || submittingComment) return;
-                                        handleAddComment(e as unknown as React.FormEvent);
-                                    }
-                                }}
-                            />
-                            <div className="flex justify-between items-center mt-2">
-                                <p className="text-xs text-foreground-muted">Markdown supported · Ctrl+Enter to submit</p>
-                                <button
-                                    type="submit"
-                                    disabled={submittingComment}
-                                    className="rounded-md bg-brand px-5 py-2 text-sm font-medium text-surface shadow transition-colors hover:bg-brand-hover disabled:opacity-50 cursor-pointer"
-                                >
-                                    {submittingComment ? "Posting..." : "Comment"}
-                                </button>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </Card>
                 ) : (
-                    <div className="bg-surface p-6 rounded-xl border border-border-subtle text-center text-foreground-muted">
+                    <Card className="text-center text-foreground-muted">
                         <Link to="/login" className="text-brand font-medium hover:underline">Log in</Link> to join the conversation.
-                    </div>
+                    </Card>
                 )}
 
                 <div className="space-y-4">
@@ -688,7 +756,7 @@ export default function PostDetail() {
                         const isEditingThis = editingCommentId === comment.id;
 
                         return (
-                            <div key={comment.id} className={`bg-surface p-5 py-4 rounded-xl border flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : 'border-border-subtle'}`}>
+                            <Card key={comment.id} padding="p-5 py-4" className={`flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : ''}`}>
                                 <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase`}>
                                     {comment.owner.username.charAt(0)}
                                 </div>
@@ -737,7 +805,7 @@ export default function PostDetail() {
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                                                     </button>
                                                     <div className={`absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showCommentMenu === comment.id ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
-                                                        {user.id === post.owner_id && (
+                                                        {(user.id === post.owner_id || isAdmin) && (
                                                             <button
                                                                 onClick={() => { handlePinComment(comment.id); setShowCommentMenu(null); }}
                                                                 className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
@@ -745,7 +813,7 @@ export default function PostDetail() {
                                                                 {comment.is_pinned ? "Unpin Comment" : "Pin Comment"}
                                                             </button>
                                                         )}
-                                                        {user.id === comment.owner_id && (
+                                                        {(user.id === comment.owner_id || isAdmin) && (
                                                             <button
                                                                 onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentMenu(null); }}
                                                                 className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
@@ -813,7 +881,7 @@ export default function PostDetail() {
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                            </Card>
                         )
                     })}
                 </div>

@@ -20,10 +20,10 @@
 @layer base {
   :root {
     /* Subtle minimalistic theme with softer grays */
-    --theme-brand: #4b5563;
-    /* Gray 600 */
-    --theme-brand-hover: #6b7280;
-    /* Gray 500 */
+    --theme-brand: #6366f1;
+    /* indigo 500 */
+    --theme-brand-hover: #4f46e5;
+    /* indigo 600 */
 
     --theme-surface: #ffffff;
     --theme-surface-hover: #f9fafb;
@@ -44,10 +44,10 @@
   /* Dark mode overrides (Soft dark grays instead of navy) */
   @media (prefers-color-scheme: dark) {
     :root:not(.light) {
-      --theme-brand: #e5e7eb;
-      /* Gray 200 */
-      --theme-brand-hover: #f3f4f6;
-      /* Gray 100 */
+      --theme-brand: #818cf8;
+      /* indigo 400 */
+      --theme-brand-hover: #6366f1;
+      /* indigo 500 */
 
       --theme-surface: #1f2937;
       /* Gray 800 */
@@ -68,10 +68,10 @@
   }
 
   :root.dark {
-    --theme-brand: #e5e7eb;
-    /* Gray 200 */
-    --theme-brand-hover: #f3f4f6;
-    /* Gray 100 */
+    --theme-brand: #818cf8;
+    /* indigo 400 */
+    --theme-brand-hover: #6366f1;
+    /* indigo 500 */
 
     --theme-surface: #1f2937;
     /* Gray 800 */

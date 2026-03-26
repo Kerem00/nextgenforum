@@ -16,6 +16,7 @@ class TokenData(BaseModel):
     user_id: int
     email: str | None = None
     username: str | None = None
+    role: str | None = "user"
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     credentials_exception = HTTPException(
@@ -28,14 +29,15 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         user_id: int = payload.get("user_id")
         email: str = payload.get("sub")
         username: str = payload.get("username")
+        role: str = payload.get("role", "user")
         if user_id is None:
             raise credentials_exception
-        token_data = TokenData(user_id=user_id, email=email, username=username)
+        token_data = TokenData(user_id=user_id, email=email, username=username, role=role)
     except InvalidTokenError:
         raise credentials_exception
     return token_data
 
 async def require_admin(current_user: Annotated[TokenData, Depends(get_current_user)]):
-    if current_user.username != "admin":
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user

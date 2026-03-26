@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router";
 import { postsClient, usersClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { hashColor } from "../utils/hashColor";
+import { isAdmin } from "../utils/permissions";
+import { timeAgo } from "../utils/timeAgo";
+import { Card } from "../components/ui/Card";
 
 type Stats = {
     total_posts: number;
@@ -16,6 +19,7 @@ type AdminUser = {
     id: number;
     username: string;
     email: string;
+    role: string;
     is_banned: boolean;
     created_at: string;
 };
@@ -32,23 +36,6 @@ type Post = {
     comment_count: number;
 };
 
-function timeAgo(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    const years = Math.floor(diffInSeconds / 31536000);
-    if (years > 0) return `${years}y ago`;
-    const months = Math.floor(diffInSeconds / 2592000);
-    if (months > 0) return `${months}mo ago`;
-    const days = Math.floor(diffInSeconds / 86400);
-    if (days > 0) return `${days}d ago`;
-    const hours = Math.floor(diffInSeconds / 3600);
-    if (hours > 0) return `${hours}h ago`;
-    const minutes = Math.floor(diffInSeconds / 60);
-    if (minutes > 0) return `${minutes}m ago`;
-    return "just now";
-}
 
 export default function Admin() {
     const { user } = useAuth();
@@ -71,7 +58,7 @@ export default function Admin() {
     const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
 
     useEffect(() => {
-        if (user && user.username !== "admin") {
+        if (user && !isAdmin(user)) {
             navigate("/");
         }
     }, [user, navigate]);
@@ -115,6 +102,16 @@ export default function Admin() {
         }
     };
 
+    const handleToggleRole = async (userId: number, currentRole: string) => {
+        const newRole = currentRole === "admin" ? "user" : "admin";
+        try {
+            const res = await usersClient.put(`/admin/users/${userId}/role`, { role: newRole });
+            setUsers(users.map(u => u.id === userId ? { ...u, role: res.data.role } : u));
+        } catch (err) {
+            console.error("Failed to update role", err);
+        }
+    };
+
     const handleDeletePost = async (postId: number) => {
         try {
             await postsClient.delete(`/posts/${postId}`);
@@ -125,7 +122,7 @@ export default function Admin() {
         }
     };
 
-    if (!user || user.username !== "admin") {
+    if (!user || !isAdmin(user)) {
         return null;
     }
 
@@ -173,7 +170,7 @@ export default function Admin() {
                     ))}
                 </nav>
 
-                <div className="px-3 py-4 border-t border-white/10">
+                <div className="px-3 py-4 border-t border-white/10 space-y-2">
                     <Link
                         to="/"
                         className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all"
@@ -196,10 +193,10 @@ export default function Admin() {
                         {statsLoading ? (
                             <div className="grid grid-cols-2 gap-4">
                                 {[...Array(4)].map((_, i) => (
-                                    <div key={i} className="bg-surface border border-border-subtle rounded-xl p-6 animate-pulse">
+                                    <Card key={i} padding="p-6" className="animate-pulse">
                                         <div className="h-4 w-20 bg-border-subtle rounded mb-3"></div>
                                         <div className="h-8 w-16 bg-border-subtle rounded"></div>
-                                    </div>
+                                    </Card>
                                 ))}
                             </div>
                         ) : stats ? (
@@ -219,7 +216,7 @@ export default function Admin() {
                                     } />
                                 </div>
 
-                                <div className="bg-surface border border-border-subtle rounded-xl p-6 flex items-center gap-4">
+                                <Card padding="p-6" className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-brand/10 flex items-center justify-center text-brand">
                                         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                                     </div>
@@ -227,7 +224,7 @@ export default function Admin() {
                                         <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider">Most Active Category</p>
                                         <p className="text-xl font-bold text-foreground capitalize">{stats.top_category}</p>
                                     </div>
-                                </div>
+                                </Card>
                             </>
                         ) : null}
                     </div>
@@ -253,7 +250,7 @@ export default function Admin() {
                         </div>
 
                         {usersLoading ? (
-                            <div className="bg-surface border border-border-subtle rounded-xl overflow-hidden">
+                            <Card padding="p-0" className="overflow-hidden">
                                 {[...Array(5)].map((_, i) => (
                                     <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 animate-pulse">
                                         <div className="w-8 h-8 rounded-full bg-border-subtle"></div>
@@ -263,14 +260,15 @@ export default function Admin() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
+                            </Card>
                         ) : (
-                            <div className="bg-surface border border-border-subtle rounded-xl overflow-hidden">
+                            <Card padding="p-0" className="overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border-subtle bg-background/50">
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">User</th>
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Email</th>
+                                            <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Role</th>
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Joined</th>
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Status</th>
                                             <th className="text-right px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Actions</th>
@@ -288,6 +286,13 @@ export default function Admin() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-3 text-foreground-muted">{u.email}</td>
+                                                <td className="px-6 py-3">
+                                                    {u.role === "admin" ? (
+                                                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-500 border border-purple-500/20">Admin</span>
+                                                    ) : (
+                                                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">User</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-3 text-foreground-muted">{new Date(u.created_at).toLocaleDateString()}</td>
                                                 <td className="px-6 py-3">
                                                     {u.is_banned ? (
@@ -297,18 +302,32 @@ export default function Admin() {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-3 text-right">
-                                                    {u.username !== "admin" && (
-                                                        <button
-                                                            onClick={() => handleToggleBan(u.id)}
-                                                            className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
-                                                                u.is_banned
-                                                                    ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 border border-green-500/20"
-                                                                    : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
-                                                            }`}
-                                                        >
-                                                            {u.is_banned ? "Unban" : "Ban"}
-                                                        </button>
-                                                    )}
+                                                    <div className="inline-flex items-center gap-2">
+                                                        {u.id !== user?.id && (
+                                                            <button
+                                                                onClick={() => handleToggleRole(u.id, u.role)}
+                                                                className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                                                                    u.role === "admin"
+                                                                        ? "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 border border-purple-500/20"
+                                                                        : "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border border-blue-500/20"
+                                                                }`}
+                                                            >
+                                                                {u.role === "admin" ? "Demote" : "Promote"}
+                                                            </button>
+                                                        )}
+                                                        {u.id !== user?.id && (
+                                                            <button
+                                                                onClick={() => handleToggleBan(u.id)}
+                                                                className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                                                                    u.is_banned
+                                                                        ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 border border-green-500/20"
+                                                                        : "bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20"
+                                                                }`}
+                                                            >
+                                                                {u.is_banned ? "Unban" : "Ban"}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -317,7 +336,7 @@ export default function Admin() {
                                 {filteredUsers.length === 0 && (
                                     <div className="text-center py-8 text-foreground-muted text-sm">No users found.</div>
                                 )}
-                            </div>
+                            </Card>
                         )}
                     </div>
                 )}
@@ -330,7 +349,7 @@ export default function Admin() {
                         </div>
 
                         {postsLoading ? (
-                            <div className="bg-surface border border-border-subtle rounded-xl overflow-hidden">
+                            <Card padding="p-0" className="overflow-hidden">
                                 {[...Array(5)].map((_, i) => (
                                     <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 animate-pulse">
                                         <div className="flex-1 space-y-2">
@@ -339,9 +358,9 @@ export default function Admin() {
                                         </div>
                                     </div>
                                 ))}
-                            </div>
+                            </Card>
                         ) : (
-                            <div className="bg-surface border border-border-subtle rounded-xl overflow-hidden">
+                            <Card padding="p-0" className="overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-border-subtle bg-background/50">
@@ -400,7 +419,7 @@ export default function Admin() {
                                 {posts.length === 0 && (
                                     <div className="text-center py-8 text-foreground-muted text-sm">No posts yet.</div>
                                 )}
-                            </div>
+                            </Card>
                         )}
                     </div>
                 )}
@@ -411,7 +430,7 @@ export default function Admin() {
 
 function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
     return (
-        <div className="bg-surface border border-border-subtle rounded-xl p-6 flex items-start justify-between">
+        <Card padding="p-6" className="flex items-start justify-between">
             <div>
                 <p className="text-xs font-medium text-foreground-muted uppercase tracking-wider mb-2">{label}</p>
                 <p className="text-3xl font-bold text-foreground">{value}</p>
@@ -419,6 +438,6 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
             <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center text-brand">
                 {icon}
             </div>
-        </div>
+        </Card>
     );
 }

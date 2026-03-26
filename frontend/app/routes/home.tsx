@@ -4,6 +4,11 @@ import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import MarkdownTextarea from "../components/MarkdownTextarea";
 import { hashColor } from "../utils/hashColor";
+import { timeAgo } from "../utils/timeAgo";
+import { CustomSelect } from "../components/ui/CustomSelect";
+import { SkeletonCard } from "../components/ui/SkeletonCard";
+import { isAdmin } from "../utils/permissions";
+import { Card } from "../components/ui/Card";
 
 type Post = {
   id: number;
@@ -22,99 +27,11 @@ type Post = {
   comment_count: number;
 };
 
-function timeAgo(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  const years = Math.floor(diffInSeconds / 31536000);
-  if (years > 0) return `${years} year${years > 1 ? "s" : ""} ago`;
 
-  const months = Math.floor(diffInSeconds / 2592000);
-  if (months > 0) return `${months} month${months > 1 ? "s" : ""} ago`;
 
-  const weeks = Math.floor(diffInSeconds / 604800);
-  if (weeks > 0) return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
 
-  const days = Math.floor(diffInSeconds / 86400);
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
 
-  const hours = Math.floor(diffInSeconds / 3600);
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-
-  const minutes = Math.floor(diffInSeconds / 60);
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-
-  return "just now";
-  return "just now";
-}
-
-type SelectOption = { value: string; label: string };
-
-function CustomSelect({ value, onChange, options, className = "" }: { value: string, onChange: (v: string) => void, options: SelectOption[], className?: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const currentLabel = options.find(o => o.value === value)?.label || value;
-
-  return (
-    <div className={`relative ${className}`}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-        className="w-full h-full flex items-center justify-between gap-3 px-3 py-1.5 bg-surface border border-border-subtle rounded-xl text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand hover:border-brand/40 transition-all cursor-pointer"
-      >
-        <span className="whitespace-nowrap capitalize">{currentLabel}</span>
-        <svg className={`w-4 h-4 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-      </button>
-
-      <div className={`absolute left-0 top-full mt-1 w-full bg-surface rounded-xl shadow-lg border border-border-subtle z-40 overflow-hidden transition-all duration-200 origin-top ${isOpen ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
-        <div className="py-1">
-          {options.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); }}
-              onClick={() => { onChange(opt.value); setIsOpen(false); }}
-              className={`w-full text-left px-4 py-2 text-sm hover:bg-surface-hover transition-colors whitespace-nowrap capitalize cursor-pointer ${value === opt.value ? 'bg-brand/10 text-brand font-medium' : 'text-foreground'}`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SkeletonPostCard({ index = 0 }: { index?: number }) {
-  // Use index to deterministically but organically stagger the fade-in and set widths
-  const delay = `${index * 100}ms`;
-  const titleWidth = `${60 + (index % 3) * 15}%`; // Varies between 60%, 75%, 90%
-  const line1Width = `${85 + (index % 2) * 10}%`; // Varies between 85%, 95%
-  const line2Width = `${40 + (index % 4) * 10}%`; // Varies between 40%, 50%, 60%, 70%
-
-  return (
-    <div
-      className="block bg-surface p-6 rounded-xl border border-border-subtle opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
-      style={{ animationDelay: delay }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <div className="w-16 h-4 bg-border-subtle rounded animate-pulse"></div>
-      </div>
-      <div className="h-6 bg-border-subtle rounded animate-pulse mt-2 mb-4" style={{ width: titleWidth }}></div>
-      <div className="space-y-2 mb-4">
-        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line1Width }}></div>
-        <div className="h-4 bg-border-subtle rounded animate-pulse" style={{ width: line2Width }}></div>
-      </div>
-      <div className="mt-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-border-subtle animate-pulse"></div>
-          <div className="w-24 h-4 bg-border-subtle rounded animate-pulse"></div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function Home() {
   const [searchParams] = useSearchParams();
@@ -259,7 +176,7 @@ export default function Home() {
       </div>
 
       {user && (
-        <div className="bg-surface rounded-xl shadow-sm border border-border-subtle flex flex-col">
+        <Card padding="p-0" className="shadow-sm flex flex-col">
           <button
             type="button"
             onClick={() => setIsFormOpen(!isFormOpen)}
@@ -319,7 +236,7 @@ export default function Home() {
               </div>
             </form>
           </div>
-        </div>
+        </Card>
       )}
 
       <div className="space-y-4">
@@ -327,24 +244,25 @@ export default function Home() {
           showSkeleton ? (
             <div className={`transition-opacity duration-500 space-y-4 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
               {[...Array(5)].map((_, i) => (
-                <SkeletonPostCard key={i} index={i} />
+                <SkeletonCard key={i} index={i} />
               ))}
             </div>
           ) : (
             <div className="h-[800px]" />
           )
         ) : posts.length === 0 ? (
-          <div className="text-center py-12 bg-surface rounded-xl border border-border-subtle text-foreground-muted">
+          <Card padding="py-12" className="text-center text-foreground-muted">
             No discussions yet. Be the first to start one!
-          </div>
+          </Card>
         ) : (
           posts.map(post => (
             <Link
               key={post.id}
               to={`/posts/${post.id}`}
-              className="block bg-surface p-6 rounded-xl border border-border-subtle hover:border-brand/40 hover:shadow-md transition-all group relative"
+              className="block relative"
             >
-              {user?.username === "admin" && (
+              <Card hover className="relative h-full">
+                {isAdmin(user) && (
                 <div className="absolute top-4 right-4 z-10" onClick={(e) => e.preventDefault()}>
                   {deletingPostId === post.id ? (
                     <div className="flex items-center gap-2 bg-surface border border-red-500/30 rounded-lg px-3 py-1.5 shadow-sm">
@@ -411,7 +329,8 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-            </Link>
+            </Card>
+          </Link>
           ))
         )}
       </div>

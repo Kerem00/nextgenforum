@@ -31,6 +31,7 @@ class PostCreate(BaseModel):
 class UserBase(BaseModel):
     email: str
     username: str
+    role: str = "user"
     created_at: datetime
 
 class Post(PostBase):

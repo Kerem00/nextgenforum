@@ -23,7 +23,8 @@ async def lifespan(app: FastAPI):
             admin_user = models.User(
                 email="admin@forum.local",
                 username="admin",
-                hashed_password=hashed_password
+                hashed_password=hashed_password,
+                role="admin"
             )
             session.add(admin_user)
             await session.commit()
@@ -34,7 +35,8 @@ async def lifespan(app: FastAPI):
             await producer.publish_event("user_created", {
                 "id": admin_user.id,
                 "email": admin_user.email,
-                "username": admin_user.username
+                "username": admin_user.username,
+                "role": admin_user.role
             })
         else:
             print("Admin user already exists.")
@@ -75,7 +77,8 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(datab
     await producer.publish_event("user_created", {
         "id": db_user.id,
         "email": db_user.email,
-        "username": db_user.username
+        "username": db_user.username,
+        "role": db_user.role
     })
     
     return db_user
@@ -114,7 +117,7 @@ async def login_for_access_token(
         
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
-        data={"sub": user.email, "user_id": user.id, "username": user.username}, expires_delta=access_token_expires
+        data={"sub": user.email, "user_id": user.id, "username": user.username, "role": user.role}, expires_delta=access_token_expires
     )
     return schemas.Token(access_token=access_token, token_type="bearer")
 
@@ -136,7 +139,8 @@ async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession =
     await producer.publish_event("user_updated", {
         "id": db_user.id,
         "email": db_user.email,
-        "username": db_user.username
+        "username": db_user.username,
+        "role": db_user.role
     })
 
     return db_user
@@ -161,6 +165,26 @@ async def toggle_ban_user(
         raise HTTPException(status_code=404, detail="User not found")
     
     user.is_banned = not user.is_banned
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+@app.put("/admin/users/{user_id}/role", response_model=schemas.AdminUser)
+async def update_user_role(
+    user_id: int,
+    role_update: schemas.RoleUpdate,
+    current_user: Annotated[schemas.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    if role_update.role not in ("user", "admin"):
+        raise HTTPException(status_code=400, detail="Role must be 'user' or 'admin'")
+    
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.role = role_update.role
     await db.commit()
     await db.refresh(user)
     return user

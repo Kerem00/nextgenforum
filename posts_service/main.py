@@ -162,7 +162,7 @@ async def update_post(
     post = result.scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if post.owner_id != current_user.user_id:
+    if post.owner_id != current_user.user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to edit this post")
 
     post.title = post_update.title
@@ -171,8 +171,14 @@ async def update_post(
     post.is_edited = True
 
     await db.commit()
-    await db.refresh(post)
-    return post
+    
+    # Re-fetch with all options to satisfy the response schema
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
+        .where(models.Post.id == post_id)
+    )
+    return result.scalar_one_or_none()
 
 @app.put("/comments/{comment_id}", response_model=schemas.Comment)
 async def update_comment(
@@ -189,15 +195,21 @@ async def update_comment(
     comment = result.scalar_one_or_none()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
-    if comment.owner_id != current_user.user_id:
+    if comment.owner_id != current_user.user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to edit this comment")
 
     comment.content = comment_update.content
     comment.is_edited = True
 
     await db.commit()
-    await db.refresh(comment)
-    return comment
+    
+    # Re-fetch with all options to satisfy the response schema
+    result = await db.execute(
+        select(models.Comment)
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
+        .where(models.Comment.id == comment_id)
+    )
+    return result.scalar_one_or_none()
 
 @app.post("/comments/{comment_id}/pin", response_model=schemas.Comment)
 async def pin_comment(
@@ -218,8 +230,8 @@ async def pin_comment(
     post_result = await db.execute(select(models.Post).where(models.Post.id == comment.post_id))
     post = post_result.scalar_one_or_none()
     
-    if not post or post.owner_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Only the post owner can pin comments")
+    if not post or (post.owner_id != current_user.user_id and current_user.role != "admin"):
+        raise HTTPException(status_code=403, detail="Only the post owner or admin can pin comments")
 
     if not comment.is_pinned:
         # Unpin any currently pinned comment
@@ -232,8 +244,14 @@ async def pin_comment(
     comment.is_pinned = not comment.is_pinned
 
     await db.commit()
-    await db.refresh(comment)
-    return comment
+    
+    # Re-fetch with all options to satisfy the response schema
+    result = await db.execute(
+        select(models.Comment)
+        .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
+        .where(models.Comment.id == comment_id)
+    )
+    return result.scalar_one_or_none()
 
 @app.post("/posts/{post_id}/like")
 async def like_post(
@@ -339,7 +357,14 @@ async def admin_delete_post(
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
     db: AsyncSession = Depends(database.get_db)
 ):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id))
+    result = await db.execute(
+        select(models.Post)
+        .options(
+            selectinload(models.Post.comments).selectinload(models.Comment.likes),
+            selectinload(models.Post.likes)
+        )
+        .where(models.Post.id == post_id)
+    )
     post = result.scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -353,7 +378,11 @@ async def admin_delete_comment(
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
     db: AsyncSession = Depends(database.get_db)
 ):
-    result = await db.execute(select(models.Comment).where(models.Comment.id == comment_id))
+    result = await db.execute(
+        select(models.Comment)
+        .options(selectinload(models.Comment.likes))
+        .where(models.Comment.id == comment_id)
+    )
     comment = result.scalar_one_or_none()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")

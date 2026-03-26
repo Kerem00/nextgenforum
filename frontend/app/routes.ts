@@ -7,6 +7,7 @@ export default [
         route("register", "routes/register.tsx"),
         route("posts/:postId", "routes/post.tsx"),
         route("users/:userId", "routes/profile.tsx"),
-        route("admin", "routes/admin.tsx")
+        route("admin", "routes/admin.tsx"),
+        route("notifications", "routes/notifications.tsx")
     ])
 ] satisfies RouteConfig;

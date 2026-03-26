@@ -41,14 +41,15 @@ async def get_current_user_token(token: Annotated[str, Depends(oauth2_scheme)]):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         username: str = payload.get("username")
+        role: str = payload.get("role", "user")
         if email is None:
             raise credentials_exception
-        token_data = schemas.TokenData(email=email, username=username)
+        token_data = schemas.TokenData(email=email, username=username, role=role)
     except InvalidTokenError:
         raise credentials_exception
     return token_data
 
 async def require_admin(current_user: Annotated[schemas.TokenData, Depends(get_current_user_token)]):
-    if current_user.username != "admin":
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user

@@ -9,6 +9,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True) # ID from the upstream Users Service
     email = Column(String, unique=True, index=True)
     username = Column(String, unique=True, index=True)
+    role = Column(String, default="user", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     posts = relationship("Post", back_populates="owner")

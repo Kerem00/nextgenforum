@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { Card } from "../components/ui/Card";
 
 type Post = {
     id: number;
@@ -72,10 +73,10 @@ export default function Profile() {
 
     if (error || !profileData) {
         return (
-            <div className="text-center py-12 mt-8 bg-surface rounded-xl border border-border-subtle max-w-3xl mx-auto">
+            <Card padding="py-12" className="text-center mt-8 max-w-3xl mx-auto">
                 <h2 className="text-2xl font-bold text-foreground">{error || "User not found"}</h2>
                 <Link to="/" className="text-brand hover:underline mt-4 inline-block">Return to home</Link>
-            </div>
+            </Card>
         );
     }
 
@@ -84,7 +85,7 @@ export default function Profile() {
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             {/* Header Section */}
-            <div className="bg-surface rounded-xl shadow-sm border border-border-subtle overflow-hidden">
+            <Card padding="p-0" className="shadow-sm overflow-hidden">
                 <div className="h-[120px] w-full bg-gradient-to-r from-brand/20 to-brand/5 backdrop-blur-sm"></div>
 
                 <div className="px-8 pb-8 relative flex flex-col items-center">
@@ -96,17 +97,21 @@ export default function Profile() {
                     {joinedDate && <p className="text-foreground-muted text-sm mt-1 mb-2 font-medium">{joinedDate}</p>}
 
                     {isCurrentUser && (
-                        <div className="mt-4">
-                            <button className="px-5 py-2 border-2 border-border-subtle text-foreground rounded-lg text-sm font-semibold hover:border-brand hover:text-brand transition-colors cursor-pointer">
+                        <div className="mt-4 flex gap-3">
+                            <button className="px-5 py-2 border border-border-subtle bg-surface hover:bg-surface-hover text-foreground shadow-sm rounded-lg text-sm font-semibold hover:border-brand hover:text-brand transition-colors cursor-pointer">
                                 Edit Profile
                             </button>
+                            <Link to="/notifications" className="px-5 py-2 border border-border-subtle bg-surface hover:bg-surface-hover text-foreground shadow-sm rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                Notifications
+                            </Link>
                         </div>
                     )}
                 </div>
-            </div>
+            </Card>
 
             {/* Stats Bar Section */}
-            <div className="bg-surface rounded-xl p-6 shadow-sm border border-border-subtle flex items-center justify-around text-center">
+            <Card padding="p-6" className="shadow-sm flex items-center justify-around text-center">
                 <div className="flex flex-col flex-1">
                     <span className="text-3xl font-black text-foreground mb-1">{profileData.posts?.length || 0}</span>
                     <span className="text-xs text-foreground-muted uppercase tracking-widest font-bold">Posts</span>
@@ -121,7 +126,7 @@ export default function Profile() {
                     <span className="text-3xl font-black text-brand mb-1">{totalLikes}</span>
                     <span className="text-xs text-foreground-muted uppercase tracking-widest font-bold">Likes <span className="hidden sm:inline">Received</span></span>
                 </div>
-            </div>
+            </Card>
 
             {/* Grid Section */}
             <div className="grid md:grid-cols-2 gap-6">
@@ -133,23 +138,25 @@ export default function Profile() {
                                 <Link
                                     key={post.id}
                                     to={`/posts/${post.id}`}
-                                    className="block bg-surface p-5 rounded-xl border border-border-subtle border-l-4 border-l-brand hover:border-t-brand/40 hover:border-r-brand/40 hover:border-b-brand/40 transition-all hover:shadow-md group relative hover:-translate-y-0.5"
+                                    className="block"
                                 >
-                                    <div className="mb-2.5">
-                                        <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-border-subtle/50 text-foreground-muted">
-                                            {post.category || "General"}
-                                        </span>
-                                    </div>
-                                    <h3 className="font-bold text-lg text-foreground group-hover:text-brand transition-colors mb-2 leading-tight">{post.title}</h3>
-                                    <p className="text-sm text-foreground-muted line-clamp-2 opacity-80">{post.content}</p>
+                                    <Card hover accent padding="p-5" className="hover:-translate-y-0.5 relative">
+                                        <div className="mb-2.5">
+                                            <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-border-subtle/50 text-foreground-muted">
+                                                {post.category || "General"}
+                                            </span>
+                                        </div>
+                                        <h3 className="font-bold text-lg text-foreground group-hover:text-brand transition-colors mb-2 leading-tight">{post.title}</h3>
+                                        <p className="text-sm text-foreground-muted line-clamp-2 opacity-80">{post.content}</p>
+                                    </Card>
                                 </Link>
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-12 px-4 bg-surface rounded-xl border border-border-subtle border-dashed text-foreground-muted text-center">
+                        <Card padding="py-12 px-4" className="flex flex-col items-center justify-center border-dashed text-foreground-muted text-center">
                             <svg className="w-10 h-10 mb-4 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                             <p className="text-sm font-medium">No posts published yet.</p>
-                        </div>
+                        </Card>
                     )}
                 </section>
 
@@ -161,21 +168,23 @@ export default function Profile() {
                                 <Link
                                     key={comment.id}
                                     to={`/posts/${comment.post_id}`}
-                                    className="block bg-surface p-5 rounded-xl border border-border-subtle hover:border-brand/40 hover:shadow-sm transition-all hover:-translate-y-0.5"
+                                    className="block"
                                 >
-                                    <div className="text-xs font-semibold text-brand mb-3 flex items-center gap-1.5 opacity-90">
-                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                                        <span className="tracking-wide">On post: <span className="text-foreground ml-1">{comment.post_title || `Post #${comment.post_id}`}</span></span>
-                                    </div>
-                                    <p className="text-sm text-foreground line-clamp-3 pl-4 border-l-2 border-border-subtle italic opacity-90">"{comment.content}"</p>
+                                    <Card hover padding="p-5" className="hover:-translate-y-0.5">
+                                        <div className="text-xs font-semibold text-brand mb-3 flex items-center gap-1.5 opacity-90">
+                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                            <span className="tracking-wide">On post: <span className="text-foreground ml-1">{comment.post_title || `Post #${comment.post_id}`}</span></span>
+                                        </div>
+                                        <p className="text-sm text-foreground line-clamp-3 pl-4 border-l-2 border-border-subtle italic opacity-90">"{comment.content}"</p>
+                                    </Card>
                                 </Link>
                             ))}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-12 px-4 bg-surface rounded-xl border border-border-subtle border-dashed text-foreground-muted text-center">
+                        <Card padding="py-12 px-4" className="flex flex-col items-center justify-center border-dashed text-foreground-muted text-center">
                             <svg className="w-10 h-10 mb-4 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                             <p className="text-sm font-medium">No feedback left yet.</p>
-                        </div>
+                        </Card>
                     )}
                 </section>
             </div>

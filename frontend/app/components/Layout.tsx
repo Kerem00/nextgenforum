@@ -1,10 +1,17 @@
-import { Link, Outlet } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
+import { isAdmin } from "../utils/permissions";
 
 export default function Layout() {
     const { user, logout } = useAuth();
     const [isDark, setIsDark] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const location = useLocation();
+
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [location.pathname, location.search]);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme");
@@ -40,12 +47,13 @@ export default function Layout() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            <header className="sticky top-0 z-50 w-full border-b border-border-subtle bg-surface/80 backdrop-blur-md">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <header className="sticky top-0 z-50 w-full border-b border-border-subtle bg-surface/80 backdrop-blur-md relative">
+                <div className="container mx-auto px-4 h-16 flex items-center justify-between relative">
                     <Link to="/" className="text-xl font-bold tracking-tight text-foreground flex-shrink-0">
                         NextGen<span className="text-foreground-muted font-medium">Forum</span>
                     </Link>
 
+                    {/* Desktop Search */}
                     <form action="/" method="GET" className="hidden md:flex flex-1 max-w-md mx-6">
                         <div className="relative w-full">
                             <input
@@ -60,7 +68,8 @@ export default function Layout() {
                         </div>
                     </form>
 
-                    <nav className="flex items-center gap-6 flex-shrink-0">
+                    {/* Desktop Nav */}
+                    <nav className="hidden md:flex items-center gap-6 flex-shrink-0">
                         <Link to="/" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors">
                             Home
                         </Link>
@@ -82,7 +91,7 @@ export default function Layout() {
                                 <Link to={`/users/${user.id}`} className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors">
                                     Profile
                                 </Link>
-                                {user.username === "admin" && (
+                                {isAdmin(user) && (
                                     <Link to="/admin" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors">
                                         Admin Panel
                                     </Link>
@@ -90,7 +99,7 @@ export default function Layout() {
                                 <div className="w-px h-4 bg-border-subtle mx-2"></div>
                                 <span className="text-sm font-medium text-foreground-muted flex items-center gap-1.5">
                                     {user.username}
-                                    {user.username === "admin" && (
+                                    {isAdmin(user) && (
                                         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">
                                             Admin
                                         </span>
@@ -114,6 +123,64 @@ export default function Layout() {
                             </>
                         )}
                     </nav>
+
+                    {/* Mobile Menu Toggle & Actions */}
+                    <div className="flex md:hidden items-center gap-3">
+                        <button
+                            onClick={toggleTheme}
+                            className="text-foreground-muted hover:text-brand transition-colors p-1 cursor-pointer h-8 w-8 rounded-full flex items-center justify-center"
+                        >
+                            {isDark ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="text-foreground-muted hover:text-foreground p-1"
+                        >
+                            {isMobileMenuOpen ? (
+                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            ) : (
+                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Mobile Dropdown Menu */}
+                <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out bg-surface ${isMobileMenuOpen ? "max-h-screen border-t border-border-subtle" : "max-h-0 opacity-0"}`}>
+                    <div className="container mx-auto px-4 py-4 space-y-4">
+                        <form action="/" method="GET" className="relative w-full">
+                            <input
+                                type="text"
+                                name="search"
+                                placeholder="Search discussions..."
+                                className="w-full bg-background border border-border-subtle rounded-lg py-2 pl-4 pr-10 text-sm focus:outline-none focus:border-brand"
+                            />
+                            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-brand">
+                                🔍
+                            </button>
+                        </form>
+                        
+                        <nav className="flex flex-col gap-3">
+                            <Link to="/" className="text-sm font-medium text-foreground hover:text-brand transition-colors p-2 rounded-md hover:bg-surface-hover">Home</Link>
+                            
+                            {user ? (
+                                <>
+                                    <Link to={`/users/${user.id}`} className="text-sm font-medium text-foreground hover:text-brand p-2 rounded-md hover:bg-surface-hover">Profile</Link>
+                                    {isAdmin(user) && <Link to="/admin" className="text-sm font-medium text-red-500 hover:text-red-600 p-2 rounded-md hover:bg-red-500/10">Admin Panel</Link>}
+                                    <button onClick={logout} className="text-left text-sm font-medium text-red-500 p-2 rounded-md hover:bg-red-500/10 cursor-pointer">Logout ({user.username})</button>
+                                </>
+                            ) : (
+                                <>
+                                    <Link to="/login" className="text-sm font-medium text-foreground p-2 rounded-md hover:bg-surface-hover">Log in</Link>
+                                    <Link to="/register" className="text-sm font-medium text-brand p-2 rounded-md hover:bg-brand/10">Sign up</Link>
+                                </>
+                            )}
+                        </nav>
+                    </div>
                 </div>
             </header>
 
@@ -121,9 +188,37 @@ export default function Layout() {
                 <Outlet />
             </main>
 
-            <footer className="border-t border-border-subtle bg-surface py-6 mt-auto">
-                <div className="container mx-auto px-4 text-center text-sm text-foreground-muted">
-                    © {new Date().getFullYear()} NextGenForum. All rights reserved.
+            <footer className="border-t border-border-subtle bg-surface py-8 mt-auto">
+                <div className="container mx-auto px-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-center md:text-left">
+                        <div>
+                            <span className="text-xl font-bold tracking-tight text-foreground">
+                                NextGen<span className="text-brand font-medium">Forum</span>
+                            </span>
+                            <p className="mt-2 text-sm text-foreground-muted max-w-xs mx-auto md:mx-0">
+                                A modern, fast, and secure place to host and participate in amazing discussions.
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-foreground mb-3">Links</h3>
+                            <ul className="space-y-2 text-sm text-foreground-muted">
+                                <li><Link to="/" className="hover:text-brand transition-colors">Home</Link></li>
+                                <li><Link to="/register" className="hover:text-brand transition-colors">Sign up</Link></li>
+                                <li><Link to="/login" className="hover:text-brand transition-colors">Log in</Link></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-foreground mb-3">Legal</h3>
+                            <ul className="space-y-2 text-sm text-foreground-muted">
+                                <li><a href="#" className="hover:text-brand transition-colors">Terms of Service</a></li>
+                                <li><a href="#" className="hover:text-brand transition-colors">Privacy Policy</a></li>
+                                <li><a href="#" className="hover:text-brand transition-colors">Cookie Policy</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div className="pt-6 border-t border-border-subtle text-center text-sm text-foreground-muted">
+                        © {new Date().getFullYear()} NextGenForum. All rights reserved.
+                    </div>
                 </div>
             </footer>
         </div>
