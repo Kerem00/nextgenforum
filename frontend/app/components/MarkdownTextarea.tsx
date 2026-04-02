@@ -1,9 +1,11 @@
 import React, { useRef, useImperativeHandle, forwardRef } from 'react';
+import type { ReactNode } from 'react';
 
 type MarkdownTextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
     value: string;
     onValueChange: (val: string) => void;
     knownUsers?: { id: number; username: string }[];
+    replyContextBar?: ReactNode;
 };
 
 const MarkdownTextarea = forwardRef<HTMLTextAreaElement, MarkdownTextareaProps>(
@@ -114,6 +116,7 @@ const MarkdownTextarea = forwardRef<HTMLTextAreaElement, MarkdownTextareaProps>(
 
     return (
         <div className={`flex flex-col border border-border-subtle rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand focus-within:border-transparent transition-all bg-background ${className}`}>
+            {props.replyContextBar}
             <div className="flex flex-wrap items-center gap-1 p-2 border-b border-border-subtle bg-surface-hover/30">
                 <button type="button" onClick={() => insertText('**', '**')} className="p-1.5 rounded hover:bg-surface text-foreground-muted hover:text-foreground transition-colors cursor-pointer" title="Bold">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" /><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" /></svg>

@@ -2,11 +2,13 @@ import { Link, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { useAdminNotifications } from "../context/AdminNotificationContext";
+import { useNotifications } from "../context/NotificationContext";
 import { isAdmin } from "../utils/permissions";
 
 export default function Layout() {
     const { user, logout } = useAuth();
     const { pendingCount } = useAdminNotifications();
+    const { unreadCount } = useNotifications();
     const [isDark, setIsDark] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
@@ -90,6 +92,14 @@ export default function Layout() {
 
                         {user ? (
                             <>
+                                <Link to="/notifications" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors flex items-center gap-1.5" title="Notifications">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                                    {unreadCount > 0 && (
+                                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-surface">
+                                            {unreadCount}
+                                        </span>
+                                    )}
+                                </Link>
                                 <Link to={`/users/${user.id}`} className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors">
                                     Profile
                                 </Link>
@@ -176,6 +186,14 @@ export default function Layout() {
                             
                             {user ? (
                                 <>
+                                    <Link to="/notifications" className="text-sm font-medium text-foreground hover:text-brand p-2 rounded-md hover:bg-surface-hover flex items-center justify-between">
+                                        Notifications
+                                        {unreadCount > 0 && (
+                                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-surface">
+                                                {unreadCount}
+                                            </span>
+                                        )}
+                                    </Link>
                                     <Link to={`/users/${user.id}`} className="text-sm font-medium text-foreground hover:text-brand p-2 rounded-md hover:bg-surface-hover">Profile</Link>
                                     {isAdmin(user) && (
                                         <Link to="/admin" className="text-sm font-medium text-red-500 hover:text-red-600 p-2 rounded-md hover:bg-red-500/10 flex items-center justify-between">
