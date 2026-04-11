@@ -316,4 +316,61 @@ body {
     margin-bottom: 2em;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
+
+  /* ─── Home Page Redesign Utilities ─── */
+
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .shimmer-text {
+    background: linear-gradient(90deg, currentColor 25%, var(--theme-foreground) 50%, currentColor 75%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 1.5s linear infinite;
+  }
+
+  /* Dark mode card depth gradient */
+  .card-surface {
+    background-color: var(--theme-surface);
+  }
+  :root.dark .card-surface {
+    background: linear-gradient(to bottom, #1f2937, rgba(31, 41, 55, 0.85));
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) .card-surface {
+      background: linear-gradient(to bottom, #1f2937, rgba(31, 41, 55, 0.85));
+    }
+  }
+
+  /* Dark mode brand-tinted hover shadows */
+  :root.dark .hover-shadow-brand:hover {
+    box-shadow: 0 10px 15px -3px rgba(129, 140, 248, 0.1), 0 4px 6px -4px rgba(129, 140, 248, 0.1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) .hover-shadow-brand:hover {
+      box-shadow: 0 10px 15px -3px rgba(129, 140, 248, 0.1), 0 4px 6px -4px rgba(129, 140, 248, 0.1);
+    }
+  }
 }
