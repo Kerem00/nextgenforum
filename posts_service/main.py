@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import asyncio
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import func
+from sqlalchemy import func, text
 from . import models, schemas, database, consumer, auth
 from .comment_mod import comment_mod
 from .config import CONFIDENCE_THRESHOLD
@@ -17,6 +17,12 @@ async def lifespan(app: FastAPI):
     # Create tables
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+    
+    try:
+        async with database.engine.begin() as conn:
+            await conn.execute(text("ALTER TYPE content_status ADD VALUE IF NOT EXISTS 'pending'"))
+    except Exception:
+        pass
     
     # Start consumer in background
     task = asyncio.create_task(consumer.consume_events())
@@ -80,24 +86,8 @@ async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content
             )
             db.add(log)
     else:
-        # Posts: keep existing behavior — flag all for manual review
-        report = models.Report(
-            entity_type=entity_type,
-            entity_id=entity_id,
-            reason="AutoMod Flag",
-            context="Automated checking flag for all new content.",
-            status="pending"
-        )
-        db.add(report)
-        log = models.AdminLog(
-            action_type="automod_flag",
-            entity_type=entity_type,
-            entity_id=entity_id,
-            moderator_id=None,
-            category="AutoMod",
-            details="Content flagged for manual review by AutoMod."
-        )
-        db.add(log)
+        # Posts: new posts are placed in pending status for manual review (Approval Queue)
+        pass # No need for explicit report as pending posts appear in the approval queue natively
     await db.commit()
 
 app = FastAPI(lifespan=lifespan)
@@ -593,6 +583,73 @@ async def resolve_report(
     await db.commit()
     await db.refresh(report)
     return report
+
+@app.get("/admin/pending_posts", response_model=list[schemas.Post])
+async def get_pending_posts(
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    query = (
+        select(models.Post)
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
+        .where(models.Post.status == 'pending')
+        .order_by(models.Post.created_at.desc())
+    )
+    result = await db.execute(query)
+    return result.scalars().all()
+
+@app.post("/admin/posts/{post_id}/approve", response_model=schemas.Post)
+async def approve_post(
+    post_id: int,
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
+        .where(models.Post.id == post_id)
+    )
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    post.status = "active"
+    log = models.AdminLog(
+        action_type="approve_post",
+        entity_type="post",
+        entity_id=post_id,
+        moderator_id=current_user.user_id,
+        category="Moderation",
+        details=f"Post approved by admin {current_user.username}"
+    )
+    db.add(log)
+    await db.commit()
+    await db.refresh(post)
+    return post
+
+@app.post("/admin/posts/{post_id}/deny", status_code=204)
+async def deny_post(
+    post_id: int,
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.Post).where(models.Post.id == post_id))
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    
+    post.status = "removed"
+    log = models.AdminLog(
+        action_type="deny_post",
+        entity_type="post",
+        entity_id=post_id,
+        moderator_id=current_user.user_id,
+        category="Moderation",
+        details=f"Post denied and removed by admin {current_user.username}"
+    )
+    db.add(log)
+    await db.commit()
+    return Response(status_code=204)
 
 @app.get("/admin/logs", response_model=list[schemas.AdminLog])
 async def get_logs(

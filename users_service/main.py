@@ -32,14 +32,27 @@ async def lifespan(app: FastAPI):
 
             # Publish event so posts_service gets the admin user replica
             await session.refresh(admin_user)
-            await producer.publish_event("user_created", {
-                "id": admin_user.id,
-                "email": admin_user.email,
-                "username": admin_user.username,
-                "role": admin_user.role
-            })
+            try:
+                await producer.publish_event("user_created", {
+                    "id": admin_user.id,
+                    "email": admin_user.email,
+                    "username": admin_user.username,
+                    "role": admin_user.role
+                })
+            except Exception as e:
+                print(f"Failed to publish admin user creation: {e}")
         else:
-            print("Admin user already exists.")
+            print("Admin user already exists. Publishing sync event anyway.")
+            await session.refresh(admin_user)
+            try:
+                await producer.publish_event("user_created", {
+                    "id": admin_user.id,
+                    "email": admin_user.email,
+                    "username": admin_user.username,
+                    "role": admin_user.role
+                })
+            except Exception as e:
+                print(f"Failed to publish admin user sync: {e}")
     
     yield
 

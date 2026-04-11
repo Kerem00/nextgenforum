@@ -63,7 +63,7 @@ export default function Admin() {
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    const [activePage, setActivePage] = useState<"overview" | "users" | "posts" | "moderation" | "automod" | "logs">("overview");
+    const [activePage, setActivePage] = useState<"overview" | "users" | "posts" | "moderation" | "automod" | "logs" | "approval_queue">("overview");
 
     // Overview state
     const [stats, setStats] = useState<Stats | null>(null);
@@ -87,6 +87,12 @@ export default function Admin() {
     // Logs state
     const [logs, setLogs] = useState<AdminLog[]>([]);
     const [logTab, setLogTab] = useState<"AutoMod" | "Moderation">("Moderation");
+
+    // Approval Queue state
+    const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
+    const [pendingPostsLoading, setPendingPostsLoading] = useState(true);
+    const [editingPendingPost, setEditingPendingPost] = useState<Post | null>(null);
+    const [pendingEditForm, setPendingEditForm] = useState({ title: '', category: '', content: '' });
 
     useEffect(() => {
         if (user && !isAdmin(user)) {
@@ -139,6 +145,45 @@ export default function Admin() {
                 .catch(err => console.error("Failed to fetch logs", err));
         }
     }, [activePage]);
+
+    useEffect(() => {
+        if (activePage === "approval_queue") {
+            setPendingPostsLoading(true);
+            postsClient.get("/admin/pending_posts")
+                .then(res => setPendingPosts(res.data))
+                .catch(err => console.error("Failed to fetch pending posts", err))
+                .finally(() => setPendingPostsLoading(false));
+        }
+    }, [activePage]);
+
+    const handleApprovePendingPost = async (postId: number) => {
+        try {
+            await postsClient.post(`/admin/posts/${postId}/approve`);
+            setPendingPosts(pendingPosts.filter(p => p.id !== postId));
+        } catch (err) {
+            console.error("Failed to approve post", err);
+        }
+    };
+
+    const handleDenyPendingPost = async (postId: number) => {
+        try {
+            await postsClient.post(`/admin/posts/${postId}/deny`);
+            setPendingPosts(pendingPosts.filter(p => p.id !== postId));
+        } catch (err) {
+            console.error("Failed to deny post", err);
+        }
+    };
+
+    const handleSavePendingEdit = async () => {
+        if (!editingPendingPost) return;
+        try {
+            const res = await postsClient.put(`/posts/${editingPendingPost.id}`, pendingEditForm);
+            setPendingPosts(pendingPosts.map(p => p.id === editingPendingPost.id ? { ...p, ...res.data } : p));
+            setEditingPendingPost(null);
+        } catch (err) {
+            console.error("Failed to edit post", err);
+        }
+    };
 
 
     const handleToggleBan = async (userId: number) => {
@@ -235,6 +280,9 @@ export default function Admin() {
         )},
         { key: "automod" as const, label: "AutoMod", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>            
+        )},
+        { key: "approval_queue" as const, label: "Approval Queue", icon: (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         )},
         { key: "logs" as const, label: "Logs", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -674,7 +722,84 @@ export default function Admin() {
                         </Card>
                     </div>
                 )}
+                {activePage === "approval_queue" && (
+                    <div className="space-y-6 w-full">
+                        <div>
+                            <h2 className="text-2xl font-bold text-foreground">Approval Queue</h2>
+                            <p className="text-sm text-foreground-muted mt-1">Review new posts before they go live</p>
+                        </div>
+                        {pendingPostsLoading ? (
+                            <Card padding="p-0" className="overflow-hidden">
+                                {[...Array(3)].map((_, i) => (
+                                    <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-border-subtle last:border-b-0 animate-pulse">
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 w-64 bg-border-subtle rounded"></div>
+                                            <div className="h-3 w-24 bg-border-subtle rounded"></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </Card>
+                        ) : (
+                            <Card padding="p-0" className="overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-border-subtle bg-background/50">
+                                            <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Title</th>
+                                            <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Category</th>
+                                            <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Author</th>
+                                            <th className="text-right px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pendingPosts.map((p, i) => (
+                                            <tr key={p.id} className={`border-b border-border-subtle last:border-b-0 hover:bg-surface-hover/50 transition-colors ${i % 2 === 0 ? '' : 'bg-background/30'}`}>
+                                                <td className="px-6 py-3 font-medium text-foreground">{p.title}</td>
+                                                <td className="px-6 py-3">
+                                                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">{p.category}</span>
+                                                </td>
+                                                <td className="px-6 py-3 text-foreground-muted">{p.owner.username}</td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <div className="inline-flex items-center gap-2">
+                                                        <button onClick={() => { setEditingPendingPost(p); setPendingEditForm({ title: p.title, category: p.category, content: p.content }); }} className="text-xs font-medium px-3 py-1.5 rounded-md text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors cursor-pointer">Edit</button>
+                                                        <button onClick={() => handleApprovePendingPost(p.id)} className="text-xs font-medium px-3 py-1.5 rounded-md text-green-500 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 transition-colors cursor-pointer">Approve</button>
+                                                        <button onClick={() => handleDenyPendingPost(p.id)} className="text-xs font-medium px-3 py-1.5 rounded-md text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-colors cursor-pointer">Deny</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {pendingPosts.length === 0 && (
+                                    <div className="text-center py-8 text-foreground-muted text-sm">Queue is empty.</div>
+                                )}
+                            </Card>
+                        )}
+                    </div>
+                )}
             </main>
+            {editingPendingPost && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <Card padding="p-6" className="w-full max-w-lg space-y-4">
+                        <h3 className="text-lg font-bold">Edit Pending Post</h3>
+                        <div>
+                            <label className="block text-sm mb-1 text-foreground-muted">Title</label>
+                            <input className="w-full px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md" value={pendingEditForm.title} onChange={e => setPendingEditForm({...pendingEditForm, title: e.target.value})} />
+                        </div>
+                        <div>
+                            <label className="block text-sm mb-1 text-foreground-muted">Category</label>
+                            <input className="w-full px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md" value={pendingEditForm.category} onChange={e => setPendingEditForm({...pendingEditForm, category: e.target.value})} />
+                        </div>
+                        <div>
+                            <label className="block text-sm mb-1 text-foreground-muted">Content</label>
+                            <textarea className="w-full h-32 px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md" value={pendingEditForm.content} onChange={e => setPendingEditForm({...pendingEditForm, content: e.target.value})} />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4 border-t border-border-subtle">
+                            <button onClick={() => setEditingPendingPost(null)} className="px-4 py-2 rounded-md hover:bg-surface-hover text-sm font-medium cursor-pointer">Cancel</button>
+                            <button onClick={handleSavePendingEdit} className="px-4 py-2 bg-brand text-brand-foreground rounded-md text-sm font-medium cursor-pointer">Save Changes</button>
+                        </div>
+                    </Card>
+                </div>
+            )}
             
             {selectedReport && (
                 <ReportDetailsModal 

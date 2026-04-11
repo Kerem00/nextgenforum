@@ -8,6 +8,7 @@ class ContentStatus(str, enum.Enum):
     active = "active"
     banned = "banned"
     removed = "removed"
+    pending = "pending"
 
 class User(Base):
     __tablename__ = "users"
@@ -30,7 +31,7 @@ class Post(Base):
     content = Column(String)
     category = Column(String, nullable=False, default="unknown")
     is_edited = Column(Boolean, nullable=False, default=False)
-    status = Column(SQLEnum(ContentStatus, name="content_status"), nullable=False, default=ContentStatus.active)
+    status = Column(SQLEnum(ContentStatus, name="content_status"), nullable=False, default=ContentStatus.pending)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"))
 
