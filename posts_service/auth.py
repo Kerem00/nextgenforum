@@ -41,3 +41,18 @@ async def require_admin(current_user: Annotated[TokenData, Depends(get_current_u
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+async def get_current_user_optional(token: str = Depends(OAuth2PasswordBearer(tokenUrl="login", auto_error=False))):
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("user_id")
+        email: str = payload.get("sub")
+        username: str = payload.get("username")
+        role: str = payload.get("role", "user")
+        if user_id is None:
+            return None
+        return TokenData(user_id=user_id, email=email, username=username, role=role)
+    except InvalidTokenError:
+        return None

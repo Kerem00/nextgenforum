@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import ReactMarkdown from "react-markdown";
@@ -28,6 +28,7 @@ type Post = {
         username: string;
     };
     likes: { owner_id: number }[];
+    status: string;
 };
 
 type Comment = {
@@ -44,6 +45,7 @@ type Comment = {
         username: string;
     };
     likes: { owner_id: number }[];
+    status: string;
 };
 
 
@@ -99,6 +101,7 @@ export default function PostDetail() {
     const { postId } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const [post, setPost] = useState<Post | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
@@ -139,6 +142,19 @@ export default function PostDetail() {
     const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
     const isAdmin = checkIsAdmin(user);
+
+    useEffect(() => {
+        if (!loading && post) {
+            const reportVisit = searchParams.get('report_visit');
+            if (reportVisit && reportVisit !== 'true') {
+                const commentEl = document.getElementById(`comment-${reportVisit}`);
+                if (commentEl) {
+                    commentEl.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+            }
+        }
+    }, [loading, post, searchParams]);
+
 
     const handleAdminDeletePost = async () => {
         if (!postId || !post) return;
@@ -211,20 +227,21 @@ export default function PostDetail() {
         const fetchPostDetails = async () => {
             try {
                 setLoading(true);
-                // Since there is no direct GET /posts/{postId} in the spec,
-                // we fetch all posts and find the matching one.
-                const [postsRes, commentsRes] = await Promise.all([
-                    postsClient.get("/posts"),
-                    postsClient.get(`/posts/${postId}/comments`)
+                const reportVisit = searchParams.get('report_visit');
+                const postReportVisit = reportVisit === 'true' ? '?report_visit=true' : '';
+                const commentReportVisit = reportVisit && reportVisit !== 'true' ? `?report_visit=${reportVisit}` : '';
+                const [postRes, commentsRes] = await Promise.all([
+                    postsClient.get(`/posts/${postId}${postReportVisit}`),
+                    postsClient.get(`/posts/${postId}/comments${commentReportVisit}`)
                 ]);
 
-                const foundPost = postsRes.data.find((p: Post) => p.id === Number(postId));
-                if (foundPost) {
-                    setPost(foundPost);
-                }
+                setPost(postRes.data);
                 setComments(commentsRes.data || []);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to fetch post details", err);
+                if (err.response?.status === 404) {
+                    navigate("/");
+                }
             } finally {
                 setLoading(false);
                 setShowSkeleton(false);
@@ -234,7 +251,7 @@ export default function PostDetail() {
         if (postId) {
             fetchPostDetails();
         }
-    }, [postId]);
+    }, [postId, searchParams]);
 
     // Delay showing the skeleton loading state by 200ms to avoid flashes on fast connections
     useEffect(() => {
@@ -559,10 +576,10 @@ export default function PostDetail() {
                     </Card>
                 </div>
             )}
-
-            <Card padding="p-5 md:p-6" className="shadow-sm relative">
-                {user && (
-                    <div className="absolute top-4 right-4 md:top-5 md:right-5" ref={postMenuRef}>
+            <div id="post-content">
+                <Card padding="p-5 md:p-6" className={`shadow-sm relative ${searchParams.get('report_visit') === 'true' ? (searchParams.get('status') === 'banned' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] bg-red-500/10 ring-4 ring-red-500/40' : 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] bg-blue-500/10 ring-4 ring-blue-500/40') : ''}`}>
+                    {user && (
+                        <div className="absolute top-4 right-4 md:top-5 md:right-5" ref={postMenuRef}>
                         <button
                             onClick={() => setShowPostMenu(!showPostMenu)}
                             className="text-foreground-muted hover:text-foreground p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
@@ -696,6 +713,7 @@ export default function PostDetail() {
                     )}
                 </div>
             </Card>
+            </div>
 
             <section className="space-y-6">
                 <h3 className="text-xl font-bold text-foreground">Comments ({comments.length})</h3>
@@ -769,10 +787,14 @@ export default function PostDetail() {
                     {comments.map(comment => {
                         const isCommentLikedByMe = user ? comment.likes?.some(l => l.owner_id === user.id) : false;
                         const isEditingThis = editingCommentId === comment.id;
+                        const isTargetedByReport = searchParams.get('report_visit') === comment.id.toString();
+                        const reportStatus = searchParams.get('status');
+                        const highlightClass = isTargetedByReport ? (reportStatus === 'banned' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] bg-red-500/10 ring-4 ring-red-500/40' : 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] bg-blue-500/10 ring-4 ring-blue-500/40') : '';
 
                         return (
-                            <Card key={comment.id} padding="p-5 py-4" className={`flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : ''}`}>
-                                <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase`}>
+                            <div key={comment.id} id={`comment-${comment.id}`}>
+                                <Card padding="p-5 py-4" className={`flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : ''} ${highlightClass}`}>
+                                    <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase`}>
                                     {comment.owner.username.charAt(0)}
                                 </div>
                                 <div className="flex-1">
@@ -897,7 +919,8 @@ export default function PostDetail() {
                                     )}
                                 </div>
                             </Card>
-                        )
+                            </div>
+                        );
                     })}
                 </div>
             </section>

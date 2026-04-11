@@ -1,7 +1,13 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
+import enum
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
+
+class ContentStatus(str, enum.Enum):
+    active = "active"
+    banned = "banned"
+    removed = "removed"
 
 class User(Base):
     __tablename__ = "users"
@@ -24,6 +30,7 @@ class Post(Base):
     content = Column(String)
     category = Column(String, nullable=False, default="unknown")
     is_edited = Column(Boolean, nullable=False, default=False)
+    status = Column(SQLEnum(ContentStatus, name="content_status"), nullable=False, default=ContentStatus.active)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"))
 
@@ -38,6 +45,7 @@ class Comment(Base):
     content = Column(String)
     is_edited = Column(Boolean, nullable=False, default=False)
     is_pinned = Column(Boolean, nullable=False, default=False)
+    status = Column(SQLEnum(ContentStatus, name="content_status"), nullable=False, default=ContentStatus.active)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     post_id = Column(Integer, ForeignKey("posts.id"))
     owner_id = Column(Integer, ForeignKey("users.id"))
@@ -62,3 +70,28 @@ class Like(Base):
     owner = relationship("User", back_populates="likes")
     post = relationship("Post", back_populates="likes")
     comment = relationship("Comment", back_populates="likes")
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    entity_type = Column(String, nullable=False) # 'post' or 'comment'
+    entity_id = Column(Integer, nullable=False)
+    reason = Column(String, nullable=False)
+    context = Column(String, nullable=True)
+    status = Column(String, default="pending", nullable=False) # 'pending' or 'resolved'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class AdminLog(Base):
+    __tablename__ = "admin_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action_type = Column(String, nullable=False) # 'resolve_report', 'ban', 'automod_flag'
+    entity_type = Column(String, nullable=True) # 'post', 'comment', 'user'
+    entity_id = Column(Integer, nullable=True)
+    moderator_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Null if automod
+    category = Column(String, nullable=False) # 'Reports', 'AutoMod', 'Moderation'
+    details = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    moderator = relationship("User")

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { CustomSelect } from "./ui/CustomSelect";
-import { sendAdminNotification } from "../utils/notificationHelpers";
-
+import { postsClient } from "../api";
 type ReportModalProps = {
     isOpen: boolean;
     onClose: () => void;
@@ -23,17 +22,11 @@ export function ReportModal({ isOpen, onClose, entityType, entityId, postId }: R
         setIsSubmitting(true);
         
         try {
-            // Emit a new_report notification to admins
-            sendAdminNotification({
-                type: "new_report",
-                actorUsername: "A user", // We don't necessarily need the reporter's name here if anonymous-ish
-                metadata: {
-                    entityType,
-                    entityId,
-                    postId,
-                    reason,
-                    context
-                }
+            await postsClient.post('/reports', {
+                entity_type: entityType,
+                entity_id: entityId,
+                reason,
+                context
             });
 
             console.log(`Report submitted: ${entityType} ${entityId}, Reason: ${reason}, Context: ${context}`);

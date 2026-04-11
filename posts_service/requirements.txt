@@ -6,3 +6,8 @@ pydantic
 aio_pika
 python-dotenv
 pyjwt
+emoji
+joblib
+scikit-learn
+fasttext
+pandas

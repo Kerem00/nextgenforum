@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { postsClient, usersClient } from "../api";
 import { useAuth } from "../context/AuthContext";
-import { useAdminNotifications } from "../context/AdminNotificationContext";
 import { hashColor } from "../utils/hashColor";
 import { isAdmin } from "../utils/permissions";
 import { timeAgo } from "../utils/timeAgo";
 import { Card } from "../components/ui/Card";
+import { ReportDetailsModal } from "../components/ReportDetailsModal";
 
 type Stats = {
     total_posts: number;
@@ -37,13 +37,33 @@ type Post = {
     comment_count: number;
 };
 
+export type AdminReport = {
+    id: number;
+    entity_type: string;
+    entity_id: number;
+    reason: string;
+    context: string | null;
+    status: string;
+    created_at: string;
+};
+
+export type AdminLog = {
+    id: number;
+    action_type: string;
+    entity_type: string | null;
+    entity_id: number | null;
+    moderator_id: number | null;
+    category: string;
+    details: string | null;
+    created_at: string;
+    moderator?: { username: string };
+};
 
 export default function Admin() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const { notifications, markAsRead } = useAdminNotifications();
 
-    const [activePage, setActivePage] = useState<"overview" | "users" | "posts" | "moderation">("overview");
+    const [activePage, setActivePage] = useState<"overview" | "users" | "posts" | "moderation" | "automod" | "logs">("overview");
 
     // Overview state
     const [stats, setStats] = useState<Stats | null>(null);
@@ -58,6 +78,15 @@ export default function Admin() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [postsLoading, setPostsLoading] = useState(true);
     const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+
+    // Reports state
+    const [reports, setReports] = useState<AdminReport[]>([]);
+    const [reportSearch, setReportSearch] = useState("");
+    const [selectedReport, setSelectedReport] = useState<AdminReport | null>(null);
+
+    // Logs state
+    const [logs, setLogs] = useState<AdminLog[]>([]);
+    const [logTab, setLogTab] = useState<"AutoMod" | "Moderation">("Moderation");
 
     useEffect(() => {
         if (user && !isAdmin(user)) {
@@ -95,6 +124,23 @@ export default function Admin() {
         }
     }, [activePage]);
 
+    useEffect(() => {
+        if (activePage === "moderation") {
+            postsClient.get("/admin/reports")
+                .then(res => setReports(res.data))
+                .catch(err => console.error("Failed to fetch reports", err));
+        }
+    }, [activePage]);
+
+    useEffect(() => {
+        if (activePage === "logs") {
+            postsClient.get("/admin/logs")
+                .then(res => setLogs(res.data))
+                .catch(err => console.error("Failed to fetch logs", err));
+        }
+    }, [activePage]);
+
+
     const handleToggleBan = async (userId: number) => {
         try {
             const res = await usersClient.post(`/admin/users/${userId}/ban`);
@@ -124,6 +170,42 @@ export default function Admin() {
         }
     };
 
+    const handleResolveReport = async (reportId: number) => {
+        try {
+            await postsClient.post(`/admin/reports/${reportId}/resolve`);
+        } catch (err: any) {
+            if (err.response?.status !== 404) console.error("Failed to resolve report", err);
+        } finally {
+            setReports(reports.filter(r => r.id !== reportId));
+            setSelectedReport(null);
+        }
+    };
+
+    const handleBanContent = async (entityType: string, entityId: number, reportId: number) => {
+        try {
+            if (entityType === "post") {
+                await postsClient.delete(`/posts/${entityId}`);
+            } else {
+                await postsClient.delete(`/comments/${entityId}`);
+            }
+            try {
+                await postsClient.post(`/admin/reports/${reportId}/resolve`);
+            } catch (err: any) {
+                if (err.response?.status !== 404) console.error("Report resolve threw an error", err);
+            }
+            setReports(reports.filter(r => r.id !== reportId));
+            setSelectedReport(null);
+            
+            // Refetch logs to immediately show new actions
+            if (activePage === "logs") {
+                const res = await postsClient.get("/admin/logs");
+                setLogs(res.data);
+            }
+        } catch (err) {
+            console.error("Failed to ban content", err);
+        }
+    };
+
     if (!user || !isAdmin(user)) {
         return null;
     }
@@ -131,6 +213,12 @@ export default function Admin() {
     const filteredUsers = users.filter(u =>
         u.username.toLowerCase().includes(userSearch.toLowerCase())
     );
+
+    const filteredReports = reports.filter(r =>
+        r.id.toString().includes(reportSearch)
+    );
+
+    const filteredLogs = logs.filter(l => l.category === logTab);
 
     const navItems = [
         { key: "overview" as const, label: "Overview", icon: (
@@ -145,10 +233,16 @@ export default function Admin() {
         { key: "moderation" as const, label: "Reports", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
         )},
+        { key: "automod" as const, label: "AutoMod", icon: (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>            
+        )},
+        { key: "logs" as const, label: "Logs", icon: (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        )},
     ];
 
     return (
-        <div className="flex min-h-[calc(100vh-8rem)] -mx-4 -my-8 rounded-xl overflow-hidden border border-border-subtle">
+        <div className="flex min-h-[calc(100vh-8rem)] overflow-hidden border-x border-border-subtle w-[100vw] max-w-none relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw] -my-8">
             {/* Sidebar */}
             <aside className="w-64 bg-gray-900 text-white flex-shrink-0 flex flex-col">
                 <div className="px-6 py-6 border-b border-white/10">
@@ -189,7 +283,7 @@ export default function Admin() {
             {/* Content */}
             <main className="flex-1 bg-background p-8 overflow-auto">
                 {activePage === "overview" && (
-                    <div className="space-y-8 max-w-5xl">
+                    <div className="space-y-8 w-full">
                         <div>
                             <h2 className="text-2xl font-bold text-foreground">Overview</h2>
                             <p className="text-sm text-foreground-muted mt-1">Forum statistics at a glance</p>
@@ -236,7 +330,7 @@ export default function Admin() {
                 )}
 
                 {activePage === "users" && (
-                    <div className="space-y-6 max-w-5xl">
+                    <div className="space-y-6 w-full">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-bold text-foreground">Users</h2>
@@ -347,7 +441,7 @@ export default function Admin() {
                 )}
 
                 {activePage === "posts" && (
-                    <div className="space-y-6 max-w-5xl">
+                    <div className="space-y-6 w-full">
                         <div>
                             <h2 className="text-2xl font-bold text-foreground">Posts</h2>
                             <p className="text-sm text-foreground-muted mt-1">Manage forum content</p>
@@ -429,85 +523,167 @@ export default function Admin() {
                     </div>
                 )}
                 {activePage === "moderation" && (
-                    <div className="space-y-6 max-w-5xl">
-                        <div>
-                            <h2 className="text-2xl font-bold text-foreground">Moderation Reports</h2>
-                            <p className="text-sm text-foreground-muted mt-1">Review and act on user flags</p>
+                    <div className="space-y-6 w-full">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-bold text-foreground">Moderation Reports</h2>
+                                <p className="text-sm text-foreground-muted mt-1">Review and act on content flags</p>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search by Report ID..."
+                                    value={reportSearch}
+                                    onChange={(e) => setReportSearch(e.target.value)}
+                                    className="w-64 px-4 py-2 pl-10 bg-surface border border-border-subtle rounded-lg text-sm text-foreground placeholder-[var(--theme-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-brand"
+                                />
+                                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            </div>
                         </div>
 
                         <Card padding="p-0" className="overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b border-border-subtle bg-background/50">
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Report ID</th>
                                         <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Type</th>
                                         <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Reason</th>
-                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Reporter</th>
                                         <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Date</th>
-                                        <th className="text-right px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {notifications
-                                        .filter(n => n.type === "new_report" || n.type === "flagged_content")
-                                        .map((n, i) => (
-                                            <tr key={n.id} className={`border-b border-border-subtle last:border-b-0 hover:bg-surface-hover/50 transition-colors ${i % 2 === 0 ? '' : 'bg-background/30'} ${!n.read ? 'bg-brand/5' : ''}`}>
-                                                <td className="px-6 py-3 capitalize font-medium text-foreground">
-                                                    {n.metadata?.entityType || "content"}
-                                                </td>
-                                                <td className="px-6 py-3 text-foreground-muted capitalize">
-                                                    {n.metadata?.reason?.replace('_', ' ') || "Suspected violation"}
-                                                </td>
-                                                <td className="px-6 py-3 text-foreground-muted">{n.actorUsername || "Anonymous"}</td>
-                                                <td className="px-6 py-3 text-foreground-muted">{timeAgo(n.createdAt)}</td>
-                                                <td className="px-6 py-3 text-right">
-                                                    <div className="inline-flex items-center gap-2">
-                                                        <Link
-                                                            to={n.metadata?.entityType === 'post' ? `/posts/${n.metadata.entityId}` : `/posts/${n.metadata?.postId}`}
-                                                            onClick={() => markAsRead(n.id)}
-                                                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-brand/10 text-brand hover:bg-brand/20 border border-brand/20 transition-colors"
-                                                        >
-                                                            Visit
-                                                        </Link>
-                                                        <button
-                                                            onClick={() => markAsRead(n.id)}
-                                                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-green-500/10 text-green-500 hover:bg-green-500/20 border border-green-500/20 transition-colors cursor-pointer"
-                                                        >
-                                                            Resolve
-                                                        </button>
-                                                        <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    if (n.metadata?.entityType === 'post') {
-                                                                        await postsClient.delete(`/posts/${n.metadata.entityId}`);
-                                                                    } else if (n.metadata?.entityType === 'comment') {
-                                                                        await postsClient.delete(`/comments/${n.metadata.entityId}`);
-                                                                    }
-                                                                    markAsRead(n.id);
-                                                                } catch (err) {
-                                                                    console.error("Failed to delete content", err);
-                                                                }
-                                                            }}
-                                                            className="text-xs font-medium px-3 py-1.5 rounded-md bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 transition-colors cursor-pointer"
-                                                        >
-                                                            Delete Content
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                    {filteredReports.map((r, i) => (
+                                        <tr 
+                                            key={r.id} 
+                                            onClick={() => setSelectedReport(r)}
+                                            className={`border-b border-border-subtle last:border-b-0 hover:bg-surface-hover/50 transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-background/30'}`}
+                                        >
+                                            <td className="px-6 py-3 font-bold text-foreground">#{r.id}</td>
+                                            <td className="px-6 py-3 capitalize font-medium text-foreground">
+                                                {r.entity_type}
+                                            </td>
+                                            <td className="px-6 py-3 text-foreground-muted capitalize">
+                                                {r.reason.replace('_', ' ')}
+                                            </td>
+                                            <td className="px-6 py-3 text-foreground-muted">{timeAgo(r.created_at)}</td>
+                                        </tr>
+                                    ))}
                                 </tbody>
                             </table>
-                            {notifications.filter(n => n.type === "new_report" || n.type === "flagged_content").length === 0 && (
+                            {filteredReports.length === 0 && (
                                 <div className="text-center py-12 text-foreground-muted flex flex-col items-center">
                                     <svg className="w-12 h-12 mb-4 text-border-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                                     <p className="text-sm font-medium">No active reports</p>
-                                    <p className="text-xs mt-1">Content flagged by users or AI will appear here.</p>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+                )}
+                {activePage === "automod" && (
+                    <div className="space-y-6 w-full">
+                        <div>
+                            <h2 className="text-2xl font-bold text-foreground">Automated Moderator</h2>
+                            <p className="text-sm text-foreground-muted mt-1">Configure AI moderation rules</p>
+                        </div>
+                        <Card padding="py-12" className="flex flex-col items-center justify-center text-center text-foreground-muted">
+                            <svg className="w-12 h-12 mb-4 text-border-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            <p className="text-sm font-medium">AutoMod configuration is coming soon</p>
+                        </Card>
+                    </div>
+                )}
+                {activePage === "logs" && (
+                    <div className="space-y-6 w-full">
+                        <div>
+                            <h2 className="text-2xl font-bold text-foreground">Audit Logs</h2>
+                            <p className="text-sm text-foreground-muted mt-1">Review system and moderator actions</p>
+                        </div>
+
+                        <div className="flex border-b border-border-subtle overflow-x-auto overflow-y-hidden remove-scrollbar pb-1 gap-2">
+                            {["AutoMod", "Moderation"].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setLogTab(tab as any)}
+                                    className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-300 ${
+                                        logTab === tab
+                                            ? "bg-brand/10 text-brand outline-none"
+                                            : "text-foreground-muted hover:text-foreground hover:bg-surface-hover hover:border-transparent outline-none"
+                                    }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+
+                        <Card padding="p-0" className="overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-border-subtle bg-background/50">
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Log ID</th>
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Date</th>
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Type</th>
+                                        <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Action</th>
+                                        {logTab === "Moderation" ? (
+                                            <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Moderator</th>
+                                        ) : (
+                                            <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Details</th>
+                                        )}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredLogs.map((l, i) => {
+                                        const actionLabel = l.action_type === 'ban' ? 'Removed' : l.action_type === 'resolve_report' ? 'Approved' : l.action_type.replace(/_/g, ' ');
+                                        const typeLabel = logTab === "Moderation" ? "Report" : (l.entity_type || 'System');
+
+                                        return (
+                                            <tr 
+                                                key={l.id} 
+                                                className={`border-b border-border-subtle last:border-b-0 hover:bg-surface-hover/50 transition-colors cursor-pointer ${i % 2 === 0 ? '' : 'bg-background/30'}`}
+                                                onClick={() => {
+                                                    if (l.entity_type) {
+                                                        setSelectedReport({
+                                                            id: l.id,
+                                                            entity_type: l.entity_type,
+                                                            entity_id: l.entity_id || 0,
+                                                            reason: l.action_type,
+                                                            context: l.details,
+                                                            status: "resolved",
+                                                            created_at: l.created_at
+                                                        });
+                                                    }
+                                                }}
+                                            >
+                                                <td className="px-6 py-3 font-medium text-foreground whitespace-nowrap">#{l.id}</td>
+                                                <td className="px-6 py-3 text-foreground-muted whitespace-nowrap">{new Date(l.created_at).toLocaleString()}</td>
+                                                <td className="px-6 py-3 capitalize text-teal-500 font-medium whitespace-nowrap">{typeLabel}</td>
+                                                <td className="px-6 py-3 text-foreground font-medium capitalize whitespace-nowrap">{actionLabel}</td>
+                                                {logTab === "Moderation" ? (
+                                                    <td className="px-6 py-3 text-amber-500 font-medium whitespace-nowrap">{l.moderator?.username || 'Unknown'}</td>
+                                                ) : (
+                                                    <td className="px-6 py-3 text-foreground-muted">{l.details}</td>
+                                                )}
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            {filteredLogs.length === 0 && (
+                                <div className="text-center py-12 text-foreground-muted">
+                                    <p className="text-sm font-medium">No logs found for this category</p>
                                 </div>
                             )}
                         </Card>
                     </div>
                 )}
             </main>
+            
+            {selectedReport && (
+                <ReportDetailsModal 
+                    report={selectedReport} 
+                    onClose={() => setSelectedReport(null)} 
+                    onResolve={() => handleResolveReport(selectedReport.id)}
+                    onBan={() => handleBanContent(selectedReport.entity_type, selectedReport.entity_id, selectedReport.id)}
+                />
+            )}
         </div>
     );
 }

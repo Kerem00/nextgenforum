@@ -22,6 +22,7 @@ class PostBase(BaseModel):
     content: str
     category: str = "unknown"
     is_edited: bool = False
+    status: str = "active"
 
 class PostCreate(BaseModel):
     title: str
@@ -52,6 +53,7 @@ class CommentBase(BaseModel):
     content: str
     is_edited: bool = False
     is_pinned: bool = False
+    status: str = "active"
     post_title: str | None = None
 
 class CommentCreate(BaseModel):
@@ -72,4 +74,41 @@ class User(UserBase):
     posts: List[Post] = []
     comments: List[Comment] = []
 
+    model_config = ConfigDict(from_attributes=True)
+
+class ReportBase(BaseModel):
+    entity_type: str
+    entity_id: int
+    reason: str
+    context: str | None = None
+    status: str = "pending"
+
+class ReportCreate(BaseModel):
+    entity_type: str
+    entity_id: int
+    reason: str
+    context: str | None = None
+
+class Report(ReportBase):
+    id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class AdminLogBase(BaseModel):
+    action_type: str
+    entity_type: str | None = None
+    entity_id: int | None = None
+    moderator_id: int | None = None
+    category: str
+    details: str | None = None
+
+class AdminLogModerator(BaseModel):
+    id: int
+    username: str
+    model_config = ConfigDict(from_attributes=True)
+
+class AdminLog(AdminLogBase):
+    id: int
+    created_at: datetime
+    moderator: AdminLogModerator | None = None
     model_config = ConfigDict(from_attributes=True)

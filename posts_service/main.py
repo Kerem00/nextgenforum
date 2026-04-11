@@ -7,6 +7,8 @@ from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from . import models, schemas, database, consumer, auth
+from .comment_mod import comment_mod
+from .config import CONFIDENCE_THRESHOLD
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -22,6 +24,81 @@ async def lifespan(app: FastAPI):
     yield
     
     # Cleanup if needed (task.cancel() etc)
+
+
+async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content: str):
+    if entity_type == "comment":
+        # Run ML-based moderation for comments
+        is_toxic, confidence = comment_mod(content)
+
+        if confidence >= CONFIDENCE_THRESHOLD:
+            if is_toxic:
+                # Auto-remove: set comment status to banned
+                result = await db.execute(
+                    select(models.Comment).where(models.Comment.id == entity_id)
+                )
+                comment_obj = result.scalar_one_or_none()
+                if comment_obj:
+                    comment_obj.status = "banned"
+                log = models.AdminLog(
+                    action_type="automod_remove",
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    moderator_id=None,
+                    category="AutoMod",
+                    details=f"Content automatically removed by AutoMod (confidence: {confidence:.2%})."
+                )
+                db.add(log)
+            else:
+                # Auto-resolve: content is fine, no action needed
+                log = models.AdminLog(
+                    action_type="automod_resolve",
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    moderator_id=None,
+                    category="AutoMod",
+                    details=f"Content automatically resolved by AutoMod (confidence: {confidence:.2%})."
+                )
+                db.add(log)
+        else:
+            # Low confidence: flag for manual review
+            report = models.Report(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                reason="AutoMod Flag",
+                context=f"Flagged for manual review (confidence: {confidence:.2%}, toxic: {is_toxic}).",
+                status="pending"
+            )
+            db.add(report)
+            log = models.AdminLog(
+                action_type="automod_flag",
+                entity_type=entity_type,
+                entity_id=entity_id,
+                moderator_id=None,
+                category="AutoMod",
+                details=f"Content flagged for manual review by AutoMod (confidence: {confidence:.2%})."
+            )
+            db.add(log)
+    else:
+        # Posts: keep existing behavior — flag all for manual review
+        report = models.Report(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            reason="AutoMod Flag",
+            context="Automated checking flag for all new content.",
+            status="pending"
+        )
+        db.add(report)
+        log = models.AdminLog(
+            action_type="automod_flag",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            moderator_id=None,
+            category="AutoMod",
+            details="Content flagged for manual review by AutoMod."
+        )
+        db.add(log)
+    await db.commit()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -50,6 +127,7 @@ async def create_post(
     db.add(db_post)
     await db.commit()
     await db.refresh(db_post)
+    await auto_check(db, 'post', db_post.id, db_post.content)
     
     # Eager load likes and owner for the response schema
     result = await db.execute(
@@ -64,9 +142,13 @@ async def get_posts(
     search: str | None = None, 
     category: str | None = None,
     sort: str | None = "recent",
+    current_user: Annotated[auth.TokenData | None, Depends(auth.get_current_user_optional)] = None,
     db: AsyncSession = Depends(database.get_db)
 ):
     query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
+    
+    # ALWAYS filter out banned posts in the general feed, even for admins.
+    query = query.where(models.Post.status == 'active')
     
     if search:
         query = query.where(models.Post.title.ilike(f"%{search}%"))
@@ -89,6 +171,41 @@ async def get_posts(
     return result.scalars().all()
 
 from sqlalchemy.orm import selectinload
+
+@app.get("/comments/{comment_id}", response_model=schemas.Comment)
+async def get_comment(
+    comment_id: int,
+    report_visit: str | None = None,
+    current_user: Annotated[auth.TokenData | None, Depends(auth.get_current_user_optional)] = None,
+    db: AsyncSession = Depends(database.get_db)
+):
+    query = select(models.Comment).options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post)).where(models.Comment.id == comment_id)
+    is_admin = current_user and current_user.role == 'admin'
+    if not (is_admin and report_visit):
+        query = query.where(models.Comment.status == 'active')
+    result = await db.execute(query)
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return c
+
+@app.get("/posts/{post_id}", response_model=schemas.Post)
+async def get_post(
+    post_id: int,
+    report_visit: str | None = None,
+    current_user: Annotated[auth.TokenData | None, Depends(auth.get_current_user_optional)] = None,
+    db: AsyncSession = Depends(database.get_db)
+):
+    query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments)).where(models.Post.id == post_id)
+    
+    is_admin = current_user and current_user.role == 'admin'
+    if not (is_admin and report_visit):
+        query = query.where(models.Post.status == 'active')
+    result = await db.execute(query)
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
 
 @app.get("/users/{user_id}", response_model=schemas.User)
 async def get_user_replica(user_id: int, db: AsyncSession = Depends(database.get_db)):
@@ -126,6 +243,7 @@ async def create_comment(
     db.add(db_comment)
     await db.commit()
     await db.refresh(db_comment)
+    await auto_check(db, 'comment', db_comment.id, db_comment.content)
     
     # Needs likes array and owner for schema
     result = await db.execute(
@@ -136,13 +254,23 @@ async def create_comment(
     return result.scalar_one_or_none()
 
 @app.get("/posts/{post_id}/comments", response_model=list[schemas.Comment])
-async def get_comments(post_id: int, db: AsyncSession = Depends(database.get_db)):
+async def get_comments(post_id: int, report_visit: str | None = None, current_user: Annotated[auth.TokenData | None, Depends(auth.get_current_user_optional)] = None, db: AsyncSession = Depends(database.get_db)):
     result = await db.execute(
         select(models.Comment)
         .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.post_id == post_id)
     )
     comments = list(result.scalars().all())
+    
+    is_admin = current_user and current_user.role == 'admin'
+    
+    filtered_comments = []
+    for c in comments:
+        if c.status == 'active':
+            filtered_comments.append(c)
+        elif is_admin and report_visit and str(c.id) == report_visit:
+            filtered_comments.append(c)
+    comments = filtered_comments
     # Sort pinned comments to the top
     comments.sort(key=lambda c: (not c.is_pinned, c.created_at))
     return comments
@@ -351,26 +479,31 @@ async def unlike_comment(
         return {"message": "Comment unliked"}
     return {"message": "Like not found"}
 
+
 @app.delete("/posts/{post_id}", status_code=204)
 async def admin_delete_post(
     post_id: int,
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
     db: AsyncSession = Depends(database.get_db)
 ):
-    result = await db.execute(
-        select(models.Post)
-        .options(
-            selectinload(models.Post.comments).selectinload(models.Comment.likes),
-            selectinload(models.Post.likes)
-        )
-        .where(models.Post.id == post_id)
-    )
+    result = await db.execute(select(models.Post).where(models.Post.id == post_id))
     post = result.scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    await db.delete(post)
+    
+    post.status = "banned"
+    log = models.AdminLog(
+        action_type="ban",
+        entity_type="post",
+        entity_id=post_id,
+        moderator_id=current_user.user_id,
+        category="Moderation",
+        details=f"Post banned by admin {current_user.username}"
+    )
+    db.add(log)
     await db.commit()
     return Response(status_code=204)
+
 
 @app.delete("/comments/{comment_id}", status_code=204)
 async def admin_delete_comment(
@@ -378,15 +511,21 @@ async def admin_delete_comment(
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
     db: AsyncSession = Depends(database.get_db)
 ):
-    result = await db.execute(
-        select(models.Comment)
-        .options(selectinload(models.Comment.likes))
-        .where(models.Comment.id == comment_id)
-    )
+    result = await db.execute(select(models.Comment).where(models.Comment.id == comment_id))
     comment = result.scalar_one_or_none()
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
-    await db.delete(comment)
+    
+    comment.status = "banned"
+    log = models.AdminLog(
+        action_type="ban",
+        entity_type="comment",
+        entity_id=comment_id,
+        moderator_id=current_user.user_id,
+        category="Moderation",
+        details=f"Comment banned by admin {current_user.username}"
+    )
+    db.add(log)
     await db.commit()
     return Response(status_code=204)
 
@@ -420,3 +559,67 @@ async def get_admin_stats(
         "posts_today": posts_today,
         "top_category": top_category
     }
+
+
+@app.get("/admin/reports", response_model=list[schemas.Report])
+async def get_reports(
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.Report).where(models.Report.status == "pending").order_by(models.Report.created_at.desc()))
+    return result.scalars().all()
+
+@app.post("/admin/reports/{report_id}/resolve", response_model=schemas.Report)
+async def resolve_report(
+    report_id: int,
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(select(models.Report).where(models.Report.id == report_id))
+    report = result.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    report.status = "resolved"
+    log = models.AdminLog(
+        action_type="resolve_report",
+        entity_type=report.entity_type,
+        entity_id=report.entity_id,
+        moderator_id=current_user.user_id,
+        category="Moderation",
+        details=f"Report {report_id} resolved by admin {current_user.username}"
+    )
+    db.add(log)
+    await db.commit()
+    await db.refresh(report)
+    return report
+
+@app.get("/admin/logs", response_model=list[schemas.AdminLog])
+async def get_logs(
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(
+        select(models.AdminLog)
+        .options(selectinload(models.AdminLog.moderator))
+        .order_by(models.AdminLog.created_at.desc())
+    )
+    return result.scalars().all()
+
+@app.post("/reports", response_model=schemas.Report)
+async def create_user_report(
+    report: schemas.ReportCreate,
+    current_user: Annotated[auth.TokenData, Depends(auth.get_current_user)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    db_report = models.Report(
+        entity_type=report.entity_type,
+        entity_id=report.entity_id,
+        reason=report.reason,
+        context=report.context,
+        status="pending"
+    )
+    db.add(db_report)
+    await db.commit()
+    await db.refresh(db_report)
+    return db_report
