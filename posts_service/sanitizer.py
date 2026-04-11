@@ -1,8 +1,3 @@
-"""
-Sanitization pipeline for text preprocessing before ML model inference.
-Ported from machine_learning/preprocessing.ipynb (the "# Sanitization Pipeline" cell).
-"""
-
 import re
 import emoji
 
