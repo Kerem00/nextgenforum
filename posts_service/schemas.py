@@ -23,6 +23,7 @@ class PostBase(BaseModel):
     category: str = "unknown"
     is_edited: bool = False
     status: str = "active"
+    ai_assist: dict | None = None
 
 class PostCreate(BaseModel):
     title: str

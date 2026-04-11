@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -32,6 +32,7 @@ class Post(Base):
     category = Column(String, nullable=False, default="unknown")
     is_edited = Column(Boolean, nullable=False, default=False)
     status = Column(SQLEnum(ContentStatus, name="content_status"), nullable=False, default=ContentStatus.pending)
+    ai_assist = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"))
 

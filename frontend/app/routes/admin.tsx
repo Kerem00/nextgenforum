@@ -35,6 +35,7 @@ type Post = {
     owner: { username: string };
     likes: any[];
     comment_count: number;
+    ai_assist?: { is_toxic?: boolean; title_suggestions?: string[]; suggested_category?: string } | null;
 };
 
 export type AdminReport = {
@@ -779,15 +780,46 @@ export default function Admin() {
             </main>
             {editingPendingPost && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <Card padding="p-6" className="w-full max-w-lg space-y-4">
-                        <h3 className="text-lg font-bold">Edit Pending Post</h3>
+                    <Card padding="p-6" className="w-full max-w-lg space-y-4 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold">Edit Pending Post</h3>
+                            {editingPendingPost.ai_assist?.is_toxic && (
+                                <span className="text-xs px-2 py-1 bg-red-500/10 text-red-500 font-bold rounded border border-red-500/20">Toxic flag</span>
+                            )}
+                        </div>
                         <div>
                             <label className="block text-sm mb-1 text-foreground-muted">Title</label>
                             <input className="w-full px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md" value={pendingEditForm.title} onChange={e => setPendingEditForm({...pendingEditForm, title: e.target.value})} />
+                            {editingPendingPost.ai_assist?.title_suggestions && editingPendingPost.ai_assist.title_suggestions.length > 0 && (
+                                <div className="mt-3 space-y-1">
+                                    <p className="text-xs font-semibold text-brand mb-1.5 flex items-center gap-1">
+                                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                                        AI Suggestions
+                                    </p>
+                                    <div className="flex flex-col gap-1.5">
+                                        {editingPendingPost.ai_assist.title_suggestions.map((titleSuggestion, idx) => (
+                                            <div key={idx} className="flex items-center justify-between bg-brand/5 px-2 py-1.5 rounded border border-brand/10">
+                                                <span className="text-xs text-foreground-muted truncate mr-2 font-medium" title={titleSuggestion}>{titleSuggestion}</span>
+                                                <button onClick={() => setPendingEditForm({...pendingEditForm, title: titleSuggestion})} className="text-[10px] font-bold bg-brand text-brand-foreground px-2 py-0.5 rounded cursor-pointer shrink-0 hover:bg-brand-hover transition-colors">Use</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm mb-1 text-foreground-muted">Category</label>
                             <input className="w-full px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md" value={pendingEditForm.category} onChange={e => setPendingEditForm({...pendingEditForm, category: e.target.value})} />
+                            {editingPendingPost.ai_assist?.suggested_category && (
+                                <div className="mt-3 flex items-center justify-between bg-brand/5 px-2 py-1.5 rounded border border-brand/10">
+                                    <p className="text-xs text-foreground-muted flex items-center gap-1">
+                                        <svg className="w-3 h-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                                        <span className="font-semibold text-brand">AI Suggests:</span> 
+                                        <span className="font-medium capitalize">{editingPendingPost.ai_assist.suggested_category}</span>
+                                    </p>
+                                    <button onClick={() => setPendingEditForm({...pendingEditForm, category: editingPendingPost.ai_assist!.suggested_category!})} className="text-[10px] font-bold bg-brand text-brand-foreground px-2 py-0.5 rounded cursor-pointer hover:bg-brand-hover transition-colors">Use</button>
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm mb-1 text-foreground-muted">Content</label>

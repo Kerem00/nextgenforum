@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Response
+from fastapi import FastAPI, Depends, HTTPException, Response, BackgroundTasks
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
@@ -23,6 +23,12 @@ async def lifespan(app: FastAPI):
             await conn.execute(text("ALTER TYPE content_status ADD VALUE IF NOT EXISTS 'pending'"))
     except Exception:
         pass
+
+    try:
+        async with database.engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS ai_assist JSON"))
+    except Exception as e:
+        print("Failed to add ai_assist column:", e)
     
     # Start consumer in background
     task = asyncio.create_task(consumer.consume_events())
@@ -31,6 +37,42 @@ async def lifespan(app: FastAPI):
     
     # Cleanup if needed (task.cancel() etc)
 
+
+from google import genai
+import json
+
+async def run_ai_assist(post_id: int):
+    async with database.AsyncSessionLocal() as db:
+        result = await db.execute(select(models.Post).where(models.Post.id == post_id))
+        post = result.scalar_one_or_none()
+        if not post:
+            return
+        
+        content = post.content
+        
+        try:
+            client = genai.Client(api_key="AIzaSyB8f2w-Tx9Z8Id-w97ITGGSY9FKN-UqnW0")
+            prompt = f"Analyze the following forum post content. 1. Check for toxicity (is_toxic boolean). 2. Provide exactly 3 title_suggestions as an array. 3. Provide one suggested_category.\nOutput strictly ONLY valid JSON, do not include markdown formatting.\n\nContent: {content}"
+            
+            response = await client.aio.models.generate_content(
+                model='gemma-3-12b-it',
+                contents=prompt
+            )
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
+            raw_text = raw_text.strip()
+            
+            parsed_json = json.loads(raw_text)
+            
+            post.ai_assist = parsed_json
+            await db.commit()
+        except Exception as e:
+            print("AI assist failed:", e)
 
 async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content: str):
     if entity_type == "comment":
@@ -103,6 +145,7 @@ app.add_middleware(
 @app.post("/posts", response_model=schemas.Post)
 async def create_post(
     post: schemas.PostCreate,
+    background_tasks: BackgroundTasks,
     current_user: Annotated[auth.TokenData, Depends(auth.get_current_user)],
     db: AsyncSession = Depends(database.get_db)
 ):
@@ -118,6 +161,8 @@ async def create_post(
     await db.commit()
     await db.refresh(db_post)
     await auto_check(db, 'post', db_post.id, db_post.content)
+    
+    background_tasks.add_task(run_ai_assist, db_post.id)
     
     # Eager load likes and owner for the response schema
     result = await db.execute(
