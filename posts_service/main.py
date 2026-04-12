@@ -39,7 +39,31 @@ async def lifespan(app: FastAPI):
 
 
 from google import genai
+from google.genai import errors
 import json
+import httpx
+
+async def run_ollama_assist(content: str):
+    url = "http://localhost:11434/api/generate"
+    prompt = f"Analyze the following forum post content. 1. Check for toxicity (is_toxic boolean). 2. Provide exactly 3 title_suggestions as an array. 3. Provide one suggested_category.\nOutput strictly ONLY valid JSON, do not include markdown formatting.\n\nContent: {content}"
+    
+    payload = {
+        "model": "gemma3:12b",
+        "prompt": prompt,
+        "stream": False,
+        "format": "json"
+    }
+    
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            result = response.json()
+            raw_text = result.get("response", "").strip()
+            return json.loads(raw_text)
+        except Exception as e:
+            print(f"Ollama assist failed: {e}")
+            return None
 
 async def run_ai_assist(post_id: int):
     async with database.AsyncSessionLocal() as db:
@@ -71,6 +95,17 @@ async def run_ai_assist(post_id: int):
             
             post.ai_assist = parsed_json
             await db.commit()
+        except errors.ServerError as e:
+            if e.code == 503:
+                print("Google GenAI busy (503), falling back to Ollama...")
+                parsed_json = await run_ollama_assist(content)
+                if parsed_json:
+                    post.ai_assist = parsed_json
+                    await db.commit()
+                else:
+                    print("Ollama fallback also failed.")
+            else:
+                print(f"Google GenAI server error: {e}")
         except Exception as e:
             print("AI assist failed:", e)
 
