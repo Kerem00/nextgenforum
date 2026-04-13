@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
 from . import models, schemas, database, consumer, auth
 from .comment_mod import comment_mod
-from .config import CONFIDENCE_THRESHOLD
+from .config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -38,17 +38,14 @@ async def lifespan(app: FastAPI):
     # Cleanup if needed (task.cancel() etc)
 
 
-from google import genai
-from google.genai import errors
 import json
 import httpx
 
 async def run_ollama_assist(content: str):
-    url = "http://localhost:11434/api/generate"
     prompt = f"Analyze the following forum post content. 1. Check for toxicity (is_toxic boolean). 2. Provide exactly 3 title_suggestions as an array. 3. Provide one suggested_category.\nOutput strictly ONLY valid JSON, do not include markdown formatting.\n\nContent: {content}"
     
     payload = {
-        "model": "gemma3:12b",
+        "model": OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
         "format": "json"
@@ -56,7 +53,7 @@ async def run_ollama_assist(content: str):
     
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
-            response = await client.post(url, json=payload)
+            response = await client.post(OLLAMA_URL, json=payload)
             response.raise_for_status()
             result = response.json()
             raw_text = result.get("response", "").strip()
@@ -74,40 +71,12 @@ async def run_ai_assist(post_id: int):
         
         content = post.content
         
-        try:
-            client = genai.Client(api_key="AIzaSyB8f2w-Tx9Z8Id-w97ITGGSY9FKN-UqnW0")
-            prompt = f"Analyze the following forum post content. 1. Check for toxicity (is_toxic boolean). 2. Provide exactly 3 title_suggestions as an array. 3. Provide one suggested_category.\nOutput strictly ONLY valid JSON, do not include markdown formatting.\n\nContent: {content}"
-            
-            response = await client.aio.models.generate_content(
-                model='gemma-3-12b-it',
-                contents=prompt
-            )
-            raw_text = response.text.strip()
-            if raw_text.startswith("```json"):
-                raw_text = raw_text[7:]
-            elif raw_text.startswith("```"):
-                raw_text = raw_text[3:]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
-            raw_text = raw_text.strip()
-            
-            parsed_json = json.loads(raw_text)
-            
+        parsed_json = await run_ollama_assist(content)
+        if parsed_json:
             post.ai_assist = parsed_json
             await db.commit()
-        except errors.ServerError as e:
-            if e.code == 503:
-                print("Google GenAI busy (503), falling back to Ollama...")
-                parsed_json = await run_ollama_assist(content)
-                if parsed_json:
-                    post.ai_assist = parsed_json
-                    await db.commit()
-                else:
-                    print("Ollama fallback also failed.")
-            else:
-                print(f"Google GenAI server error: {e}")
-        except Exception as e:
-            print("AI assist failed:", e)
+        else:
+            print("AI assist via Ollama failed.")
 
 async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content: str):
     if entity_type == "comment":

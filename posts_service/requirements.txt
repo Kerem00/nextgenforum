@@ -11,5 +11,4 @@ joblib
 scikit-learn
 fasttext
 pandas
-google-genai
 httpx
