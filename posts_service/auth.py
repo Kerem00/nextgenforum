@@ -25,7 +25,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
         user_id: int = payload.get("user_id")
         email: str = payload.get("sub")
         username: str = payload.get("username")
@@ -46,7 +46,7 @@ async def get_current_user_optional(token: str = Depends(OAuth2PasswordBearer(to
     if not token:
         return None
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
         user_id: int = payload.get("user_id")
         email: str = payload.get("sub")
         username: str = payload.get("username")
