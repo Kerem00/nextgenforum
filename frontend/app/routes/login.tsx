@@ -35,7 +35,7 @@ export default function Login() {
 
             const { access_token } = res.data;
             // Login with empty userId, AuthContext will parse it or set to null
-            login(access_token, null);
+            await login(access_token, null);
             navigate("/");
         } catch (err: any) {
             console.error(err);
