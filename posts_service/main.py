@@ -42,7 +42,30 @@ import json
 import httpx
 
 async def run_ollama_assist(content: str):
-    prompt = f"Analyze the following forum post content. 1. Check for toxicity (is_toxic boolean). 2. Provide exactly 3 title_suggestions as an array. 3. Provide one suggested_category.\nOutput strictly ONLY valid JSON, do not include markdown formatting.\n\nContent: {content}"
+    allowed_categories = "['General', 'Video Games', 'Cooking', 'Technology', 'Sports', 'Science', 'Off Topic']"
+
+    prompt = f"""You are an expert AI forum moderator and content analyst.
+Your task is to analyze user-submitted forum posts and return structured data to our backend system.
+
+### INSTRUCTIONS:
+1. TOXICITY ANALYSIS: Evaluate the content for toxicity. Set 'is_toxic' to true ONLY if the content contains explicit hate speech, targeted harassment, severe profanity, spam, or illegal material. Strong dissenting opinions or mild frustration are NOT toxic. If flagged as toxic, provide a brief 1-sentence explanation in 'toxicity_reason'.
+2. TITLE SUGGESTIONS: Generate exactly 3 relevant, engaging, and clear titles for the post. Avoid clickbait. Keep each title under 60 characters.
+3. CATEGORY ASSIGNMENT: Assign the single most appropriate category from this exact list: {allowed_categories}. Do not invent new categories.
+
+### OUTPUT SCHEMA:
+You must respond strictly with raw, valid JSON. Do NOT wrap the response in markdown code blocks (e.g., do not use ```json). Do not include any conversational filler. 
+
+{{
+  "is_toxic": boolean,
+  "toxicity_reason": string | null,
+  "title_suggestions": [string, string, string],
+  "suggested_category": string
+}}
+
+### CONTENT TO ANALYZE:
+<post_content>
+{content}
+</post_content>"""
     
     payload = {
         "model": OLLAMA_MODEL,
