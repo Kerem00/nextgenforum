@@ -117,7 +117,7 @@ function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = useState(0);
   useEffect(() => {
     if (value === 0) { setDisplay(0); return; }
-    const duration = 800;
+    const duration = 900;
     const start = performance.now();
     let raf: number;
     const step = (now: number) => {
@@ -136,9 +136,9 @@ function AnimatedNumber({ value }: { value: number }) {
 
 function WidgetHeading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 mb-3">
-      <h3 className="text-xs font-semibold uppercase tracking-widest text-foreground-muted whitespace-nowrap">{children}</h3>
-      <div className="flex-1 h-px bg-border-subtle" />
+    <div className="flex items-center gap-3 mb-4">
+      <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground-muted whitespace-nowrap">{children}</h3>
+      <div className="flex-1 h-px bg-gradient-to-r from-border-subtle to-transparent" />
     </div>
   );
 }
@@ -347,36 +347,44 @@ export default function Home() {
       <div className="flex-1 min-w-0 space-y-5">
 
         {/* ── Page Header ── */}
-        <div className="rounded-2xl bg-gradient-to-br from-brand/5 to-transparent p-6 -mx-2"
-             style={{ animation: "fadeInUp 0.3s ease-out both" }}>
-          {searchQuery ? (
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-                  Search results for <span className="text-brand">"{searchQuery}"</span>
-                </h1>
-                <button onClick={clearSearch} className="p-1.5 rounded-lg hover:bg-surface-hover text-foreground-muted hover:text-foreground transition-colors cursor-pointer" title="Clear search">
-                  <svg className="w-5 h-5" {...svgBase}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-              <p className="text-sm text-foreground-muted mt-1">{posts.length} result{posts.length !== 1 ? "s" : ""} found</p>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
+        <div className="relative rounded-2xl overflow-hidden p-6 -mx-2"
+             style={{ animation: "fadeInUp 0.4s ease-out both" }}>
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-brand/8 via-purple-500/5 to-indigo-500/8 rounded-2xl" />
+          <div className="absolute inset-0 bg-gradient-to-r from-brand/5 to-transparent opacity-60" style={{ animation: "gradientShift 6s ease infinite", backgroundSize: "200% 200%" }} />
+          
+          <div className="relative">
+            {searchQuery ? (
               <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Discussions</h1>
-                <p className="text-sm text-foreground-muted mt-1">
-                  {posts.length} posts across {categories.length} categories
-                </p>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+                    Search results for <span className="gradient-text">"{searchQuery}"</span>
+                  </h1>
+                  <button onClick={clearSearch} className="p-2 rounded-xl hover:bg-surface-hover text-foreground-muted hover:text-foreground transition-all cursor-pointer" title="Clear search">
+                    <svg className="w-5 h-5" {...svgBase}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+                <p className="text-sm text-foreground-muted mt-1.5">{posts.length} result{posts.length !== 1 ? "s" : ""} found</p>
               </div>
-              {user && (
-                <button onClick={handleOpenForm} className="hidden md:inline-flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer shadow-sm">
-                  <svg className="w-4 h-4" {...svgBase} stroke="white"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  New Discussion
-                </button>
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-extrabold tracking-tight">
+                    <span className="gradient-text">Discussions</span>
+                  </h1>
+                  <p className="text-sm text-foreground-muted mt-1.5">
+                    {posts.length} posts across {categories.length} categories
+                  </p>
+                </div>
+                {user && (
+                  <button onClick={handleOpenForm} className="hidden md:inline-flex items-center gap-2 btn-primary px-5 py-2.5 rounded-xl text-sm cursor-pointer">
+                    <svg className="w-4 h-4" {...svgBase} stroke="white"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    New Discussion
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ── Category Tab Bar + Controls ── */}
@@ -387,20 +395,20 @@ export default function Home() {
                 {/* All tab */}
                 <button
                   onClick={() => handleCategoryClick("all")}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer ${
                     categoryFilter === "all"
-                      ? "bg-brand text-white shadow-md scale-105"
-                      : "text-foreground-muted hover:bg-surface-hover hover:text-foreground"
+                      ? "bg-gradient-to-r from-brand to-purple-600 text-white shadow-lg shadow-brand/25 scale-[1.03]"
+                      : "text-foreground-muted hover:bg-surface-hover hover:text-foreground glass-surface"
                   }`}
                 >All</button>
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={(e) => handleCategoryClick(cat.id, e.currentTarget)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 cursor-pointer ${
                       categoryFilter === cat.id
-                        ? "bg-brand text-white shadow-md scale-105"
-                        : "text-foreground-muted hover:bg-surface-hover hover:text-foreground"
+                        ? "bg-gradient-to-r from-brand to-purple-600 text-white shadow-lg shadow-brand/25 scale-[1.03]"
+                        : "text-foreground-muted hover:bg-surface-hover hover:text-foreground glass-surface"
                     }`}
                   >
                     <CategoryIcon name={cat.icon} className="w-3.5 h-3.5" />
@@ -412,14 +420,14 @@ export default function Home() {
             {/* Sort + View toggles */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <CustomSelect value={sortFilter} onChange={(v) => { setSortFilter(v); setDisplayCount(10); }} options={sortOptions} className="w-40" />
-              <div className="flex items-center bg-surface border border-border-subtle rounded-lg overflow-hidden">
+              <div className="flex items-center glass-surface rounded-xl overflow-hidden">
                 <button onClick={() => setViewMode("list")} title="List view"
-                  className={`p-1.5 transition-colors cursor-pointer ${viewMode === "list" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
+                  className={`p-2 transition-all duration-300 cursor-pointer ${viewMode === "list" ? "bg-brand/15 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
                   <svg className="w-4 h-4" {...svgBase}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
                 </button>
-                <div className="w-px h-4 bg-border-subtle" />
+                <div className="w-px h-5 bg-border-subtle" />
                 <button onClick={() => setViewMode("compact")} title="Compact view"
-                  className={`p-1.5 transition-colors cursor-pointer ${viewMode === "compact" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
+                  className={`p-2 transition-all duration-300 cursor-pointer ${viewMode === "compact" ? "bg-brand/15 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
                   <svg className="w-4 h-4" {...svgBase}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><line x1="14" y1="4" x2="21" y2="4" /><line x1="14" y1="9" x2="21" y2="9" /><line x1="14" y1="15" x2="21" y2="15" /><line x1="14" y1="20" x2="21" y2="20" /></svg>
                 </button>
               </div>
@@ -430,33 +438,33 @@ export default function Home() {
         {/* ── Create Post Prompt Bar ── */}
         <div ref={formRef}>
           {user ? (
-            <div className="card-surface rounded-xl border border-border-subtle shadow-sm overflow-hidden">
+            <div className="glass-card glow-border overflow-hidden">
               {!isFormOpen ? (
                 <button onClick={handleOpenForm}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:border-brand/50 hover:shadow-sm transition-all cursor-pointer">
-                  <div className={`w-8 h-8 rounded-full ${hashColor(user.username)} flex items-center justify-center font-bold text-xs text-white uppercase flex-shrink-0`}>
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-surface-hover transition-all duration-300 cursor-pointer group">
+                  <div className={`w-9 h-9 rounded-full ${hashColor(user.username)} flex items-center justify-center font-bold text-xs text-white uppercase flex-shrink-0 shadow-sm ring-2 ring-white/10`}>
                     {user.username.charAt(0)}
                   </div>
-                  <span className="text-foreground-muted text-sm flex-1 text-left">What's on your mind? Start a discussion...</span>
-                  <span className="bg-brand text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0">Post</span>
+                  <span className="text-foreground-muted text-sm flex-1 text-left group-hover:text-foreground transition-colors duration-300">What's on your mind? Start a discussion...</span>
+                  <span className="btn-primary text-xs px-4 py-1.5 rounded-lg flex-shrink-0">Post</span>
                 </button>
               ) : (
-                <div className="p-5 space-y-4 animate-[fadeInUp_0.3s_ease-out]">
+                <div className="p-5 space-y-4 animate-[scaleIn_0.3s_ease-out]">
                   <div>
                     <input type="text" placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
-                      className={`w-full px-4 py-2 bg-background border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground placeholder-[var(--theme-foreground-muted)] ${newTitle.length > 200 ? "border-red-400" : "border-border-subtle"}`}
+                      className={`w-full input-premium ${newTitle.length > 200 ? "border-red-400 focus:ring-red-400/30" : ""}`}
                       required />
-                    <div className="flex justify-end mt-1">
-                      <span className={`text-xs ${newTitle.length > 200 ? "text-red-400" : "text-foreground-muted"}`}>{newTitle.length} / 200</span>
+                    <div className="flex justify-end mt-1.5">
+                      <span className={`text-xs font-medium ${newTitle.length > 200 ? "text-red-400" : "text-foreground-muted"}`}>{newTitle.length} / 200</span>
                     </div>
                   </div>
                   {/* Category pill selection */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-foreground-muted">Category:</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-foreground-muted">Category:</span>
                     {categories.map(cat => (
                       <button key={cat.id} type="button" onClick={() => setNewCategory(cat.id)}
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                          newCategory === cat.id ? "bg-brand text-white shadow-sm" : "bg-surface-hover text-foreground-muted hover:text-foreground"
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 cursor-pointer ${
+                          newCategory === cat.id ? "bg-gradient-to-r from-brand to-purple-600 text-white shadow-sm shadow-brand/20" : "glass-surface text-foreground-muted hover:text-foreground hover:border-brand/30"
                         }`}>
                         <CategoryIcon name={cat.icon} className="w-3 h-3" />{cat.label}
                       </button>
@@ -468,9 +476,9 @@ export default function Home() {
                   <div className="flex justify-between items-center">
                     <p className="text-xs text-foreground-muted">Markdown supported &middot; Ctrl+Enter to submit</p>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => setIsFormOpen(false)} className="text-sm text-foreground-muted hover:text-foreground px-3 py-1.5 rounded-lg transition-colors cursor-pointer">Cancel</button>
+                      <button type="button" onClick={() => setIsFormOpen(false)} className="btn-ghost text-sm cursor-pointer">Cancel</button>
                       <button onClick={handleCreatePost} disabled={submitting}
-                        className="inline-flex items-center justify-center rounded-md bg-brand px-6 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-brand-hover disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                        className="btn-primary px-6 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
                         {submitting ? "Posting..." : "Post"}
                       </button>
                     </div>
@@ -480,11 +488,11 @@ export default function Home() {
             </div>
           ) : (
             <button onClick={() => navigate("/login")}
-              className="w-full flex items-center gap-3 card-surface rounded-xl border border-border-subtle px-4 py-3 hover:border-brand/50 hover:shadow-sm transition-all cursor-pointer shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-border-subtle flex items-center justify-center flex-shrink-0">
+              className="w-full flex items-center gap-3 glass-card glow-border px-5 py-4 hover:border-brand/30 transition-all duration-300 cursor-pointer group">
+              <div className="w-9 h-9 rounded-full bg-border-subtle/50 flex items-center justify-center flex-shrink-0 group-hover:bg-brand/10 transition-colors duration-300">
                 <svg className="w-4 h-4 text-foreground-muted" {...svgBase}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
               </div>
-              <span className="text-foreground-muted text-sm">Join the conversation &mdash; Log in or Sign up to post</span>
+              <span className="text-foreground-muted text-sm group-hover:text-foreground transition-colors duration-300">Join the conversation &mdash; Log in or Sign up to post</span>
             </button>
           )}
         </div>
@@ -498,8 +506,12 @@ export default function Home() {
               </div>
             ) : <div className="h-[800px]" />
           ) : posts.length === 0 ? (
-            <div className="card-surface rounded-xl border border-border-subtle p-12 text-center text-foreground-muted shadow-sm">
-              No discussions yet. Be the first to start one!
+            <div className="glass-card p-16 text-center" style={{ animation: "fadeInUp 0.4s ease-out both" }}>
+              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-brand/10 flex items-center justify-center" style={{ animation: "float 3s ease-in-out infinite" }}>
+                <svg className="w-8 h-8 text-brand/50" {...svgBase}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-2">No discussions yet</h3>
+              <p className="text-foreground-muted text-sm">Be the first to start a conversation!</p>
             </div>
           ) : (
             visiblePosts.map((post, index) => {
@@ -511,15 +523,15 @@ export default function Home() {
                 // ─── Compact View ───
                 return (
                   <Link key={post.id} to={`/posts/${post.id}`} className="block group"
-                    style={{ animation: `fadeInUp 0.3s ease-out ${index * 40}ms both` }}>
-                    <div className={`flex items-center gap-3 card-surface hover-shadow-brand rounded-lg border border-border-subtle py-3 px-4 shadow-sm hover:shadow-lg transition-all duration-200 group-hover:-translate-y-0.5 border-l-4`}
-                      style={{ borderLeftColor: `var(--tw-${catColor.replace("bg-", "")}, currentColor)` }}>
+                    style={{ animation: `fadeInUp 0.35s ease-out ${index * 40}ms both` }}>
+                    <div className={`flex items-center gap-3 glass-card rounded-xl py-3 px-4 group-hover:border-brand/20 group-hover:shadow-lg group-hover:shadow-brand/5 transition-all duration-300 group-hover:-translate-y-0.5 border-l-[3px]`}
+                      style={{ borderLeftColor: `var(--tw-${catColor.replace("bg-", "")}, var(--theme-brand))` }}>
                       <CategoryIcon name={catConf?.icon || "message-square"} className="w-4 h-4 text-foreground-muted flex-shrink-0" />
-                      <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition-colors truncate flex-1 leading-snug">
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition-colors duration-300 truncate flex-1 leading-snug">
                         {isHot && <FlameIcon className="w-3.5 h-3.5 inline text-orange-400 mr-1" />}
                         {post.title}
                       </h3>
-                      <span className="text-xs text-foreground-muted capitalize whitespace-nowrap">{post.category}</span>
+                      <span className="text-xs text-foreground-muted capitalize whitespace-nowrap badge-brand py-0.5 px-2">{post.category}</span>
                       <span className="text-xs text-foreground-muted whitespace-nowrap">{timeAgo(post.created_at)}</span>
                       <div className="flex items-center gap-3 text-xs text-foreground-muted flex-shrink-0">
                         <span className="flex items-center gap-1"><CommentIcon className="w-3.5 h-3.5" />{post.comment_count || 0}</span>
@@ -535,30 +547,30 @@ export default function Home() {
               // ─── List View ───
               return (
                 <Link key={post.id} to={`/posts/${post.id}`} className="block group"
-                  style={{ animation: `fadeInUp 0.3s ease-out ${index * 40}ms both` }}>
-                  <div className="relative overflow-hidden rounded-xl">
+                  style={{ animation: `fadeInUp 0.35s ease-out ${index * 50}ms both` }}>
+                  <div className="glass-card glow-border rounded-xl overflow-hidden group-hover:-translate-y-1 transition-all duration-400">
                     {/* Gradient top border on hover */}
-                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand to-brand/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-                    <div className="card-surface hover-shadow-brand rounded-xl border border-border-subtle p-5 shadow-sm group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-brand via-purple-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
+                    <div className="p-5 relative">
                       {/* Admin delete */}
                       {isAdmin(user) && (
                         <div className="absolute top-4 right-4 z-10" onClick={(e) => e.preventDefault()}>
                           {deletingPostId === post.id ? (
-                            <div className="flex items-center gap-2 bg-surface border border-red-500/30 rounded-lg px-3 py-1.5 shadow-sm">
-                              <span className="text-xs font-medium text-red-500">Delete?</span>
-                              <button onClick={() => handleAdminDeletePost(post.id)} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors">Yes</button>
+                            <div className="flex items-center gap-2 glass-card px-3 py-1.5 rounded-lg border-red-500/30">
+                              <span className="text-xs font-medium text-red-400">Delete?</span>
+                              <button onClick={() => handleAdminDeletePost(post.id)} className="text-xs font-bold text-red-400 hover:text-red-300 cursor-pointer px-1.5 py-0.5 rounded hover:bg-red-500/10 transition-colors">Yes</button>
                               <button onClick={() => setDeletingPostId(null)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer px-1.5 py-0.5 rounded hover:bg-surface-hover transition-colors">No</button>
                             </div>
                           ) : (
-                            <button onClick={() => setDeletingPostId(post.id)} className="text-red-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-500/10 transition-all cursor-pointer opacity-0 group-hover:opacity-100" title="Delete post (Admin)">
+                            <button onClick={() => setDeletingPostId(post.id)} className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition-all cursor-pointer opacity-0 group-hover:opacity-100" title="Delete post (Admin)">
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                             </button>
                           )}
                         </div>
                       )}
                       {/* Top row */}
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
+                      <div className="flex items-center gap-2.5 mb-3 flex-wrap">
+                        <span className="badge-brand capitalize">
                           <CategoryIcon name={catConf?.icon || "message-square"} className="w-3 h-3" />
                           {post.category}
                         </span>
@@ -571,19 +583,19 @@ export default function Home() {
                         )}
                       </div>
                       {/* Title */}
-                      <h3 className="text-lg font-bold leading-snug text-foreground group-hover:text-brand transition-colors line-clamp-2">
-                        {isHot && <FlameIcon className="w-4 h-4 inline text-orange-400 mr-1" />}
+                      <h3 className="text-lg font-bold leading-snug text-foreground group-hover:text-brand transition-colors duration-300 line-clamp-2">
+                        {isHot && <FlameIcon className="w-4 h-4 inline text-orange-400 mr-1.5" />}
                         {post.title}
                       </h3>
                       {/* Content preview */}
-                      <p className="text-sm text-foreground-muted line-clamp-2 mt-1">{stripMarkdown(post.content)}</p>
+                      <p className="text-sm text-foreground-muted line-clamp-2 mt-1.5 leading-relaxed">{stripMarkdown(post.content)}</p>
                       {/* Bottom row */}
-                      <div className="mt-3 flex items-center text-sm text-foreground-muted">
-                        <div className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/users/${post.owner_id}`); }}>
-                          <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
+                      <div className="mt-4 flex items-center text-sm text-foreground-muted">
+                        <div className="flex items-center gap-2.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/users/${post.owner_id}`); }}>
+                          <div className={`w-7 h-7 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-[10px] text-white uppercase ring-2 ring-white/10 shadow-sm`}>
                             {post.owner.username.charAt(0)}
                           </div>
-                          <span className="truncate max-w-[120px] hover:text-brand transition-colors cursor-pointer">{post.owner.username}</span>
+                          <span className="truncate max-w-[120px] hover:text-brand transition-colors cursor-pointer font-medium">{post.owner.username}</span>
                         </div>
                         <div className="flex-1" />
                         <div className="flex items-center gap-4">
@@ -604,15 +616,15 @@ export default function Home() {
 
         {/* ── Load More ── */}
         {!loading && hasMore && (
-          <div className="flex justify-center pt-2">
+          <div className="flex justify-center pt-4">
             <button onClick={handleLoadMore} disabled={loadingMore}
-              className="inline-flex items-center gap-2 px-8 py-2.5 rounded-full border border-border-subtle text-sm font-medium text-foreground-muted hover:border-brand hover:text-brand transition-all cursor-pointer disabled:opacity-50">
+              className="btn-secondary inline-flex items-center gap-2 px-8 py-2.5 rounded-full disabled:opacity-50 cursor-pointer">
               {loadingMore ? <><SpinnerIcon className="w-4 h-4" /><span className="shimmer-text">Loading...</span></> : "Load More"}
             </button>
           </div>
         )}
         {!loading && !hasMore && posts.length > 0 && (
-          <p className="text-center text-sm text-foreground-muted py-4">You've reached the end &middot; {posts.length} discussions</p>
+          <p className="text-center text-sm text-foreground-muted py-6">You've reached the end &middot; {posts.length} discussions</p>
         )}
       </div>
 
@@ -621,21 +633,21 @@ export default function Home() {
 
         {/* ── Community Stats Widget ── */}
         {forumStats && (
-          <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 100ms both" }}>
+          <div className="glass-card p-5"
+               style={{ animation: "fadeInUp 0.4s ease-out 100ms both" }}>
             <WidgetHeading>Community Stats</WidgetHeading>
             <div className="grid grid-cols-3 gap-3">
-              <div className="border-t-2 border-brand pt-2">
-                <div className="font-bold text-foreground text-lg"><AnimatedNumber value={forumStats.total_posts} /></div>
-                <div className="text-xs text-foreground-muted">Posts</div>
+              <div className="text-center rounded-xl bg-brand/5 py-3 px-2">
+                <div className="font-bold text-foreground text-xl"><AnimatedNumber value={forumStats.total_posts} /></div>
+                <div className="text-[10px] text-foreground-muted font-semibold uppercase tracking-wider mt-0.5">Posts</div>
               </div>
-              <div className="border-t-2 border-green-500 pt-2">
-                <div className="font-bold text-foreground text-lg"><AnimatedNumber value={forumStats.total_comments} /></div>
-                <div className="text-xs text-foreground-muted">Comments</div>
+              <div className="text-center rounded-xl bg-green-500/5 py-3 px-2">
+                <div className="font-bold text-foreground text-xl"><AnimatedNumber value={forumStats.total_comments} /></div>
+                <div className="text-[10px] text-foreground-muted font-semibold uppercase tracking-wider mt-0.5">Comments</div>
               </div>
-              <div className="border-t-2 border-violet-500 pt-2">
-                <div className="font-bold text-foreground text-lg">{forumStats.total_users != null ? <AnimatedNumber value={forumStats.total_users} /> : <span>&mdash;</span>}</div>
-                <div className="text-xs text-foreground-muted">Members</div>
+              <div className="text-center rounded-xl bg-violet-500/5 py-3 px-2">
+                <div className="font-bold text-foreground text-xl">{forumStats.total_users != null ? <AnimatedNumber value={forumStats.total_users} /> : <span>&mdash;</span>}</div>
+                <div className="text-[10px] text-foreground-muted font-semibold uppercase tracking-wider mt-0.5">Members</div>
               </div>
             </div>
           </div>
@@ -643,30 +655,32 @@ export default function Home() {
 
         {/* ── Browse Categories Widget ── */}
         {categories.length > 0 && (
-          <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 200ms both" }}>
+          <div className="glass-card p-5"
+               style={{ animation: "fadeInUp 0.4s ease-out 200ms both" }}>
             <WidgetHeading>Browse Categories</WidgetHeading>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {/* All Categories */}
               <button onClick={() => handleCategoryClick("all")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${
-                  categoryFilter === "all" ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand -ml-px" : "text-foreground hover:bg-surface-hover"
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 cursor-pointer ${
+                  categoryFilter === "all" ? "bg-brand/10 text-brand font-semibold shadow-sm shadow-brand/10" : "text-foreground hover:bg-surface-hover"
                 }`}>
-                <div className="w-3 h-3 rounded-sm bg-foreground-muted/30" />
+                <div className="w-7 h-7 rounded-lg bg-foreground-muted/10 flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-foreground-muted" {...svgBase}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
+                </div>
                 <span className="capitalize font-medium flex-1 text-left">All Categories</span>
               </button>
               {categories.map(cat => {
                 const catBg = hashColor(cat.id);
                 return (
                   <button key={cat.id} onClick={() => handleCategoryClick(cat.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${
-                      categoryFilter === cat.id ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand -ml-px" : "text-foreground hover:bg-surface-hover"
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-300 cursor-pointer ${
+                      categoryFilter === cat.id ? "bg-brand/10 text-brand font-semibold shadow-sm shadow-brand/10" : "text-foreground hover:bg-surface-hover"
                     }`}>
-                    <div className={`w-6 h-6 rounded-md ${catBg} flex items-center justify-center`}>
+                    <div className={`w-7 h-7 rounded-lg ${catBg} flex items-center justify-center shadow-sm`}>
                       <CategoryIcon name={cat.icon} className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="capitalize font-medium flex-1 text-left">{cat.label}</span>
-                    <span className="text-xs text-foreground-muted tabular-nums">{categoryCounts[cat.id] ?? ""}</span>
+                    <span className="text-xs text-foreground-muted tabular-nums font-medium">{categoryCounts[cat.id] ?? ""}</span>
                   </button>
                 );
               })}
@@ -676,20 +690,20 @@ export default function Home() {
 
         {/* ── Trending This Week Widget ── */}
         {(trendingLoading || trendingPosts.length >= 3) && (
-          <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 300ms both" }}>
+          <div className="glass-card p-5"
+               style={{ animation: "fadeInUp 0.4s ease-out 300ms both" }}>
             <WidgetHeading>
               <span className="inline-flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" {...svgBase}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
+                <svg className="w-3.5 h-3.5 text-brand" {...svgBase}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
                 Trending This Week
               </span>
             </WidgetHeading>
             {trendingLoading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-start gap-3 animate-pulse">
-                    <div className="w-8 h-6 bg-border-subtle rounded" />
-                    <div className="flex-1 space-y-1.5"><div className="h-3.5 bg-border-subtle rounded w-full" /><div className="h-2.5 bg-border-subtle rounded w-2/3" /></div>
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-8 h-6 skeleton-shimmer rounded-lg" />
+                    <div className="flex-1 space-y-1.5"><div className="h-3.5 skeleton-shimmer rounded-lg w-full" /><div className="h-2.5 skeleton-shimmer rounded-lg w-2/3" /></div>
                   </div>
                 ))}
               </div>
@@ -697,12 +711,12 @@ export default function Home() {
               <div className="space-y-0">
                 {trendingPosts.map((tp, i) => (
                   <Link key={tp.id} to={`/posts/${tp.id}`}
-                    className={`flex items-start gap-3 py-2.5 group/trend ${i < trendingPosts.length - 1 ? "border-b border-border-subtle" : ""}`}>
-                    <span className="text-3xl font-black text-border-subtle/40 leading-none select-none w-8 text-right flex-shrink-0 relative -top-0.5">{i + 1}</span>
+                    className={`flex items-start gap-3 py-3 group/trend ${i < trendingPosts.length - 1 ? "border-b border-border-subtle" : ""}`}>
+                    <span className="text-2xl font-black gradient-text-static leading-none select-none w-7 text-right flex-shrink-0 relative -top-0.5">{i + 1}</span>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold text-foreground group-hover/trend:text-brand transition-colors line-clamp-2 leading-snug">{tp.title}</h4>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-foreground-muted">
-                        <span className="px-1.5 py-0.5 rounded bg-border-subtle/50 capitalize">{tp.category}</span>
+                      <h4 className="text-sm font-semibold text-foreground group-hover/trend:text-brand transition-colors duration-300 line-clamp-2 leading-snug">{tp.title}</h4>
+                      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-foreground-muted">
+                        <span className="badge-brand py-0 px-1.5 text-[9px] capitalize">{tp.category}</span>
                         <span className="flex items-center gap-0.5"><HeartIcon className="w-2.5 h-2.5" />{tp.likes?.length || 0}</span>
                         <span className="flex items-center gap-0.5"><CommentIcon className="w-2.5 h-2.5" />{tp.comment_count || 0}</span>
                       </div>
@@ -716,22 +730,25 @@ export default function Home() {
 
         {/* ── Recently Active Widget ── */}
         {activeUsers.length > 0 && (
-          <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 400ms both" }}>
+          <div className="glass-card p-5"
+               style={{ animation: "fadeInUp 0.4s ease-out 400ms both" }}>
             <WidgetHeading>
               <span className="inline-flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5" {...svgBase}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                <svg className="w-3.5 h-3.5 text-brand" {...svgBase}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 Recently Active
               </span>
             </WidgetHeading>
             <div className="space-y-2">
               {activeUsers.map(au => (
-                <Link key={au.id} to={`/users/${au.id}`} className="flex items-center gap-2.5 py-1 group/user">
-                  <div className={`w-7 h-7 rounded-full ${hashColor(au.username)} flex items-center justify-center font-bold text-[10px] text-white uppercase flex-shrink-0`}>
-                    {au.username.charAt(0)}
+                <Link key={au.id} to={`/users/${au.id}`} className="flex items-center gap-3 py-1.5 group/user rounded-lg hover:bg-surface-hover px-2 -mx-2 transition-all duration-300">
+                  <div className="relative">
+                    <div className={`w-8 h-8 rounded-full ${hashColor(au.username)} flex items-center justify-center font-bold text-[10px] text-white uppercase flex-shrink-0 ring-2 ring-white/10 shadow-sm`}>
+                      {au.username.charAt(0)}
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-background" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-foreground group-hover/user:text-brand transition-colors truncate">{au.username}</div>
+                    <div className="text-sm font-medium text-foreground group-hover/user:text-brand transition-colors duration-300 truncate">{au.username}</div>
                     <div className="text-xs text-foreground-muted">Posted {timeAgo(au.created_at)}</div>
                   </div>
                 </Link>

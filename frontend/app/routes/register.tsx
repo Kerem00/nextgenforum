@@ -69,61 +69,99 @@ export default function Register() {
     };
 
     return (
-        <div className="max-w-md mx-auto mt-12 bg-surface p-8 rounded-2xl shadow-sm border border-border-subtle">
-            <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-foreground">Create an account</h1>
-                <p className="text-foreground-muted mt-2">Join NextGenForum today</p>
+        <div className="min-h-[70vh] flex items-center justify-center" style={{ animation: "fadeInUp 0.5s ease-out both" }}>
+            <div className="w-full max-w-md">
+                <div className="glass-card glow-border p-8 md:p-10">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-brand to-purple-600 flex items-center justify-center shadow-lg shadow-brand/20">
+                            <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></svg>
+                        </div>
+                        <h1 className="text-2xl font-bold text-foreground">Create an account</h1>
+                        <p className="text-foreground-muted mt-2 text-sm">Join NextGenForum and be part of the community</p>
+                    </div>
+
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm font-medium animate-[shake_0.5s_ease-in-out]">
+                            {error}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-semibold text-foreground mb-2">Email Address</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="input-premium"
+                                placeholder="you@example.com"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-foreground mb-2">Username</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="input-premium"
+                                placeholder="Choose a username"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-foreground mb-2">Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="input-premium"
+                                placeholder="Min. 6 characters"
+                            />
+                            {password.length > 0 && (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <div className="flex-1 h-1.5 rounded-full bg-border-subtle overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all duration-500 ${
+                                            password.length < 6 ? "w-1/4 bg-red-500" :
+                                            password.length < 10 ? "w-2/4 bg-yellow-500" :
+                                            password.length < 14 ? "w-3/4 bg-blue-500" :
+                                            "w-full bg-green-500"
+                                        }`} />
+                                    </div>
+                                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${
+                                        password.length < 6 ? "text-red-400" :
+                                        password.length < 10 ? "text-yellow-500" :
+                                        password.length < 14 ? "text-blue-400" :
+                                        "text-green-400"
+                                    }`}>
+                                        {password.length < 6 ? "Weak" : password.length < 10 ? "Fair" : password.length < 14 ? "Good" : "Strong"}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full btn-primary py-3 rounded-xl text-base disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            {loading ? (
+                                <span className="inline-flex items-center gap-2">
+                                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round" className="opacity-25" /><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-75" /></svg>
+                                    Creating account...
+                                </span>
+                            ) : "Sign up"}
+                        </button>
+                    </form>
+
+                    <div className="mt-8 text-center">
+                        <p className="text-sm text-foreground-muted">
+                            Already have an account? <Link to="/login" className="text-brand font-semibold hover:text-brand-hover transition-colors">Log in</Link>
+                        </p>
+                    </div>
+                </div>
             </div>
-
-            {error && (
-                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
-                    {error}
-                </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Email Address</label>
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Username</label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">Password</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-4 py-2 bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all text-foreground"
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-2.5 rounded-lg bg-brand text-surface font-medium shadow hover:bg-brand-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                    {loading ? "Creating account..." : "Sign up"}
-                </button>
-            </form>
-
-            <p className="mt-6 text-center text-sm text-foreground-muted">
-                Already have an account? <Link to="/login" className="text-brand font-medium hover:underline">Log in</Link>
-            </p>
         </div>
     );
 }

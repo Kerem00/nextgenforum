@@ -537,8 +537,11 @@ export default function PostDetail() {
     if (!post) {
         return (
             <Card padding="py-12" className="text-center mt-8 max-w-3xl mx-auto">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand/5 flex items-center justify-center" style={{ animation: 'float 3s ease-in-out infinite' }}>
+                    <svg className="w-7 h-7 text-brand/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                </div>
                 <h2 className="text-2xl font-bold text-foreground">Discussion not found</h2>
-                <Link to="/" className="text-brand hover:underline mt-4 inline-block">Return to home</Link>
+                <Link to="/" className="text-brand hover:underline mt-4 inline-block font-semibold">Return to home</Link>
             </Card>
         );
     }
@@ -546,30 +549,30 @@ export default function PostDetail() {
     const isPostLikedByMe = user ? post.likes?.some(l => l.owner_id === user.id) : false;
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-3xl mx-auto space-y-8" style={{ animation: 'fadeInUp 0.4s ease-out both' }}>
             <nav className="flex items-center gap-2 text-sm text-foreground-muted mb-6">
-                <Link to="/" className="hover:text-foreground transition-colors flex items-center gap-1">
+                <Link to="/" className="hover:text-brand transition-all duration-300 flex items-center gap-1.5 hover:bg-surface-hover px-2 py-1 -mx-2 rounded-lg">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                     Home
                 </Link>
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                <Link to={`/?category=${post.category}`} className="hover:text-foreground transition-colors capitalize">
+                <svg className="w-3.5 h-3.5 text-brand/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <Link to={`/?category=${post.category}`} className="hover:text-brand transition-all duration-300 capitalize hover:bg-surface-hover px-2 py-1 rounded-lg">
                     {post.category}
                 </Link>
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <svg className="w-3.5 h-3.5 text-brand/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 <span className="text-foreground font-medium truncate max-w-[200px] sm:max-w-xs">{post.title}</span>
             </nav>
 
             {showPinModal !== null && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <Card padding="p-6" className="max-w-sm w-full shadow-lg">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" style={{ animation: 'fadeIn 0.2s ease-out' }}>
+                    <Card padding="p-6" className="max-w-sm w-full shadow-2xl" glow style={{ animation: 'scaleIn 0.3s ease-out' }}>
                         <h3 className="text-lg font-bold text-foreground mb-2">Replace pinned comment?</h3>
                         <p className="text-sm text-foreground-muted mb-6">You can only pin one comment at a time. This will unpin the currently pinned comment.</p>
                         <div className="flex justify-end gap-3">
-                            <button onClick={() => setShowPinModal(null)} className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border-subtle rounded-lg hover:bg-surface-hover transition-colors">
+                            <button onClick={() => setShowPinModal(null)} className="btn-ghost px-4 py-2 text-sm cursor-pointer">
                                 Cancel
                             </button>
-                            <button onClick={() => confirmPinComment(showPinModal)} className="px-4 py-2 text-sm font-medium text-surface bg-brand rounded-lg hover:bg-brand-hover transition-colors">
+                            <button onClick={() => confirmPinComment(showPinModal)} className="btn-primary px-4 py-2 text-sm cursor-pointer">
                                 Replace
                             </button>
                         </div>
@@ -577,20 +580,22 @@ export default function PostDetail() {
                 </div>
             )}
             <div id="post-content">
-                <Card padding="p-5 md:p-6" className={`shadow-sm relative ${searchParams.get('report_visit') === 'true' ? (searchParams.get('status') === 'banned' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] bg-red-500/10 ring-4 ring-red-500/40' : 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] bg-blue-500/10 ring-4 ring-blue-500/40') : ''}`}>
+                <Card padding="p-6 md:p-8" className={`relative overflow-hidden ${searchParams.get('report_visit') === 'true' ? (searchParams.get('status') === 'banned' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] bg-red-500/10 ring-4 ring-red-500/40' : 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] bg-blue-500/10 ring-4 ring-blue-500/40') : ''}`}>
+                    {/* Gradient top accent */}
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-brand via-purple-500 to-indigo-500" />
                     {user && (
                         <div className="absolute top-4 right-4 md:top-5 md:right-5" ref={postMenuRef}>
                         <button
                             onClick={() => setShowPostMenu(!showPostMenu)}
-                            className="text-foreground-muted hover:text-foreground p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
+                            className="text-foreground-muted hover:text-foreground p-2 rounded-xl hover:bg-surface-hover transition-all duration-300 cursor-pointer"
                         >
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                         </button>
-                        <div className={`absolute right-0 top-full mt-1 w-40 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showPostMenu ? 'opacity-100 scale-100 max-h-[200px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+                        <div className={`absolute right-0 top-full mt-2 w-44 glass-card z-10 py-1.5 text-sm overflow-hidden transition-all duration-300 origin-top-right ${showPostMenu ? 'opacity-100 scale-100 max-h-[200px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
                             {(user.id === post.owner_id || isAdmin) && (
                                 <button
                                     onClick={() => { setEditingPost(true); setEditPostTitle(post.title); setEditPostContent(post.content); setShowPostMenu(false); }}
-                                    className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
+                                    className="w-full text-left px-4 py-2.5 text-foreground hover:bg-surface-hover hover:text-brand transition-all duration-300 cursor-pointer"
                                 >
                                     Edit Post
                                 </button>
@@ -605,7 +610,7 @@ export default function PostDetail() {
                                 ) : (
                                     <button
                                         onClick={() => { setConfirmDeletePost(true); }}
-                                        className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                        className="w-full text-left px-4 py-2.5 text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
                                     >
                                         Delete Post
                                     </button>
@@ -614,7 +619,7 @@ export default function PostDetail() {
                             {user.id !== post.owner_id && !isAdmin && (
                                 <button
                                     onClick={() => handleReport('post', post.id)}
-                                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                    className="w-full text-left px-4 py-2.5 text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
                                 >
                                     Report Post
                                 </button>
@@ -623,15 +628,18 @@ export default function PostDetail() {
                     </div>
                 )}
 
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
+                <div className="flex items-center gap-3 mb-5 mt-2">
+                    <div className="flex items-center gap-2.5">
+                        <span className="badge-brand capitalize">
                             {post.category}
                         </span>
                         <span className="text-xs text-foreground-muted">{timeAgo(post.created_at)}</span>
                     </div>
                     {post.is_edited && (
-                        <span className="text-xs text-foreground-muted italic">Edited</span>
+                        <span className="text-xs text-foreground-muted italic flex items-center gap-1">
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                            Edited
+                        </span>
                     )}
                 </div>
 
@@ -659,13 +667,13 @@ export default function PostDetail() {
                     </div>
                 ) : (
                     <>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3 pr-10">{post.title}</h1>
-                        <div className="text-sm text-foreground-muted mb-6 flex items-center gap-2">
-                            <Link to={`/users/${post.owner_id}`} className="flex items-center gap-2 hover:text-brand transition-colors">
-                                <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
+                        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground mb-4 pr-10 leading-tight">{post.title}</h1>
+                        <div className="text-sm text-foreground-muted mb-8 flex items-center gap-3">
+                            <Link to={`/users/${post.owner_id}`} className="flex items-center gap-2.5 hover:text-brand transition-all duration-300 group/author">
+                                <div className={`w-8 h-8 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase ring-2 ring-white/10 shadow-sm group-hover/author:ring-brand/30 transition-all duration-300`}>
                                     {post.owner.username.charAt(0)}
                                 </div>
-                                <span>{post.owner.username}</span>
+                                <span className="font-medium">{post.owner.username}</span>
                             </Link>
                         </div>
                         <div className="markdown-content max-w-none text-foreground mb-8">
@@ -676,15 +684,15 @@ export default function PostDetail() {
                     </>
                 )}
 
-                <div className="flex items-center justify-start gap-4 mt-8 border-t border-border-subtle pt-6">
+                <div className="flex items-center justify-start gap-4 mt-8 border-t border-border-subtle pt-6" style={{ animation: 'fadeIn 0.3s ease-out 200ms both' }}>
                     {user ? (
                         <>
                             <button
                                 onClick={handleLikePost}
                                 disabled={likingPost}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${isPostLikedByMe
-                                    ? "bg-red-50 dark:bg-red-900/20 border-red-500 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)] scale-105"
-                                    : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all duration-300 cursor-pointer text-sm font-medium ${isPostLikedByMe
+                                    ? "bg-red-500/10 border-red-500/30 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.15)] scale-[1.03]"
+                                    : "glass-surface text-foreground-muted hover:text-foreground hover:border-brand/30 hover:shadow-lg hover:shadow-brand/5"
                                     } disabled:opacity-50`}
                             >
                                 <svg className={`w-4 h-4 transition-transform duration-300 ${isPostLikedByMe ? "fill-current scale-110" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isPostLikedByMe ? "0" : "2"}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
@@ -693,9 +701,9 @@ export default function PostDetail() {
                             </button>
                             <button
                                 onClick={handleSharePost}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${isCopied
-                                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105"
-                                    : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"}`}
+                                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border transition-all duration-300 cursor-pointer text-sm font-medium ${isCopied
+                                    ? "bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.15)] scale-[1.03]"
+                                    : "glass-surface text-foreground-muted hover:text-foreground hover:border-brand/30 hover:shadow-lg hover:shadow-brand/5"}`}
                             >
                                 <svg className={`w-4 h-4 transition-transform duration-300 ${isCopied ? "stroke-blue-500 scale-110" : "stroke-current"}`} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
@@ -706,8 +714,8 @@ export default function PostDetail() {
                             </button>
                         </>
                     ) : (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-subtle bg-background text-foreground-muted text-sm">
-                            <span className="text-base leading-none">♥</span>
+                        <div className="flex items-center gap-1.5 px-4 py-2 rounded-xl glass-surface text-foreground-muted text-sm">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                             <span className="font-medium">{post.likes?.length || 0} Likes</span>
                         </div>
                     )}
@@ -716,7 +724,10 @@ export default function PostDetail() {
             </div>
 
             <section className="space-y-6">
-                <h3 className="text-xl font-bold text-foreground">Comments ({comments.length})</h3>
+                <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <div className="w-1 h-5 rounded-full bg-gradient-to-b from-brand to-purple-600" />
+                    Comments <span className="text-foreground-muted font-normal">({comments.length})</span>
+                </h3>
 
                 {user ? (
                     <Card padding="p-6">
@@ -769,7 +780,7 @@ export default function PostDetail() {
                                     <button
                                         type="submit"
                                         disabled={submittingComment}
-                                        className="rounded-md bg-brand px-5 py-2 text-sm font-medium text-surface shadow transition-colors hover:bg-brand-hover disabled:opacity-50 cursor-pointer"
+                                        className="btn-primary px-5 py-2 text-sm disabled:opacity-50 cursor-pointer rounded-xl"
                                     >
                                         {submittingComment ? "Posting..." : "Comment"}
                                     </button>
@@ -778,8 +789,8 @@ export default function PostDetail() {
                         </form>
                     </Card>
                 ) : (
-                    <Card className="text-center text-foreground-muted">
-                        <Link to="/login" className="text-brand font-medium hover:underline">Log in</Link> to join the conversation.
+                    <Card className="text-center text-foreground-muted py-8">
+                        <Link to="/login" className="text-brand font-semibold hover:underline">Log in</Link> to join the conversation.
                     </Card>
                 )}
 
@@ -793,8 +804,8 @@ export default function PostDetail() {
 
                         return (
                             <div key={comment.id} id={`comment-${comment.id}`}>
-                                <Card padding="p-5 py-4" className={`flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : ''} ${highlightClass}`}>
-                                    <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase`}>
+                                <Card padding="p-5 py-4" className={`flex gap-4 relative group ${comment.is_pinned ? 'border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.08)]' : ''} ${highlightClass}`}>
+                                    <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase ring-2 ring-white/10 shadow-sm`}>
                                     {comment.owner.username.charAt(0)}
                                 </div>
                                 <div className="flex-1">
@@ -804,7 +815,7 @@ export default function PostDetail() {
                                                 {comment.owner.username}
                                             </Link>
                                             <span className="text-xs text-foreground-muted">{timeAgo(comment.created_at)}</span>
-                                            {comment.is_pinned && <span className="text-xs font-semibold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded border border-green-500/20">Pinned comment</span>}
+                                            {comment.is_pinned && <span className="text-xs font-semibold px-2.5 py-0.5 bg-green-500/10 text-green-400 rounded-lg border border-green-500/20">Pinned</span>}
                                             {comment.is_edited && <span className="text-xs text-foreground-muted italic">Edited</span>}
                                         </div>
 
@@ -837,15 +848,15 @@ export default function PostDetail() {
                                                 <div className="relative" ref={showCommentMenu === comment.id ? commentMenuRef : null}>
                                                     <button
                                                         onClick={() => setShowCommentMenu(showCommentMenu === comment.id ? null : comment.id)}
-                                                        className={`text-foreground-muted hover:text-foreground transition-opacity p-1 rounded-md hover:bg-background cursor-pointer ${showCommentMenu === comment.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                        className={`text-foreground-muted hover:text-foreground transition-all duration-300 p-1.5 rounded-lg hover:bg-surface-hover cursor-pointer ${showCommentMenu === comment.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
                                                     </button>
-                                                    <div className={`absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showCommentMenu === comment.id ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+                                                    <div className={`absolute right-0 top-full mt-2 w-48 glass-card z-10 py-1.5 text-sm overflow-hidden transition-all duration-300 origin-top-right ${showCommentMenu === comment.id ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
                                                         {(user.id === post.owner_id || isAdmin) && (
                                                             <button
                                                                 onClick={() => { handlePinComment(comment.id); setShowCommentMenu(null); }}
-                                                                className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
+                                                                className="w-full text-left px-4 py-2.5 text-foreground hover:bg-surface-hover hover:text-brand transition-all duration-300 cursor-pointer"
                                                             >
                                                                 {comment.is_pinned ? "Unpin Comment" : "Pin Comment"}
                                                             </button>
@@ -853,7 +864,7 @@ export default function PostDetail() {
                                                         {(user.id === comment.owner_id || isAdmin) && (
                                                             <button
                                                                 onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentMenu(null); }}
-                                                                className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
+                                                                className="w-full text-left px-4 py-2.5 text-foreground hover:bg-surface-hover hover:text-brand transition-all duration-300 cursor-pointer"
                                                             >
                                                                 Edit Comment
                                                             </button>
@@ -868,7 +879,7 @@ export default function PostDetail() {
                                                             ) : (
                                                                 <button
                                                                     onClick={() => setConfirmDeleteCommentId(comment.id)}
-                                                                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                                                    className="w-full text-left px-4 py-2.5 text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
                                                                 >
                                                                     Delete Comment
                                                                 </button>
@@ -877,7 +888,7 @@ export default function PostDetail() {
                                                         {user.id !== comment.owner_id && !isAdmin && (
                                                             <button
                                                                 onClick={() => handleReport('comment', comment.id)}
-                                                                className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                                                className="w-full text-left px-4 py-2.5 text-red-400 hover:bg-red-500/10 transition-all duration-300 cursor-pointer"
                                                             >
                                                                 Report Comment
                                                             </button>
@@ -904,10 +915,10 @@ export default function PostDetail() {
                                             />
                                             <p className="text-xs text-foreground-muted">Ctrl+Enter to submit</p>
                                             <div className="flex gap-2 justify-end">
-                                                <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 bg-background text-foreground border border-border-subtle rounded text-xs font-medium hover:bg-surface-hover transition-colors cursor-pointer">
+                                                <button onClick={() => setEditingCommentId(null)} className="btn-ghost px-3 py-1.5 text-xs cursor-pointer">
                                                     Cancel
                                                 </button>
-                                                <button onClick={() => handleSaveCommentEdit(comment.id)} disabled={submitEditComment} className="px-3 py-1 bg-brand text-surface rounded text-xs font-medium hover:bg-brand-hover transition-colors cursor-pointer">
+                                                <button onClick={() => handleSaveCommentEdit(comment.id)} disabled={submitEditComment} className="btn-primary px-4 py-1.5 text-xs cursor-pointer">
                                                     {submitEditComment ? "Saving..." : "Save"}
                                                 </button>
                                             </div>

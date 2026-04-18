@@ -4,16 +4,20 @@ type CardProps = {
     children: ReactNode;
     hover?: boolean;
     accent?: boolean;
+    glass?: boolean;
+    glow?: boolean;
     padding?: string;
     className?: string;
+    style?: React.CSSProperties;
 };
 
-export function Card({ children, hover = false, accent = false, padding = "p-6", className = "" }: CardProps) {
+export function Card({ children, hover = false, accent = false, glass = true, glow = false, padding = "p-6", className = "", style }: CardProps) {
     return (
-        <div className={`
-            bg-surface rounded-xl border border-border-subtle
-            ${hover ? 'hover:border-brand/40 hover:shadow-md transition-all group' : ''}
-            ${accent ? 'border-l-4 border-l-brand' : ''}
+        <div style={style} className={`
+            ${glass ? 'glass-card' : 'bg-surface rounded-xl border border-border-subtle'}
+            ${hover ? 'glass-card-hover cursor-pointer group' : ''}
+            ${accent ? 'border-l-[3px] border-l-brand' : ''}
+            ${glow ? 'glow-border glow-border-active' : ''}
             ${padding}
             ${className}
         `.replace(/\s+/g, ' ').trim()}>
