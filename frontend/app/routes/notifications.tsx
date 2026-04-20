@@ -14,14 +14,6 @@ export default function NotificationsPage() {
     const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
     const [activeTab, setActiveTab] = useState<FilterTab>("All");
 
-    if (!user) {
-        return (
-            <div className="max-w-3xl mx-auto py-12 text-center text-foreground-muted">
-                Please <Link to="/login" className="text-brand hover:underline">log in</Link> to view your notifications.
-            </div>
-        );
-    }
-
     const filteredNotifications = useMemo(() => {
         switch (activeTab) {
             case "Unread":
@@ -39,6 +31,14 @@ export default function NotificationsPage() {
                 return notifications;
         }
     }, [notifications, activeTab]);
+
+    if (!user) {
+        return (
+            <div className="max-w-3xl mx-auto py-12 text-center text-foreground-muted">
+                Please <Link to="/login" className="text-brand hover:underline">log in</Link> to view your notifications.
+            </div>
+        );
+    }
 
     const handleNotificationClick = (n: Notification) => {
         markAsRead(n.id);

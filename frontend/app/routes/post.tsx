@@ -314,22 +314,35 @@ export default function PostDetail() {
                     });
                 }
             }
-            if (user) {
-                const mentions = extractMentions(newComment);
-                const uniqueMentionedUsers = Array.from(new Map(comments.map((c: Comment) => [c.owner.username.toLowerCase(), c.owner])).values())
-                    .filter(u => mentions.includes(u.username.toLowerCase()) && u.id !== user.id);
+            if (user && post) {
+                try {
+                    const mentionRegex = /@(\w+)/g;
+                    const matches = [...finalContent.matchAll(mentionRegex)];
+                    const mentionedUsernames = [...new Set(matches.map(m => m[1]))];
 
-                uniqueMentionedUsers.forEach(mentionedUser => {
-                    sendUserNotification(mentionedUser.id, {
-                        type: "mention",
-                        actorUsername: user.username,
-                        actorId: user.id,
-                        postId: post?.id,
-                        postTitle: post?.title,
-                        commentId: newCommentObj.id,
-                        commentPreview: finalContent.substring(0, 80)
+                    const participants = new Map();
+                    participants.set(post.owner.username.toLowerCase(), post.owner);
+                    comments.forEach((c: Comment) => {
+                        participants.set(c.owner.username.toLowerCase(), c.owner);
                     });
-                });
+
+                    mentionedUsernames.forEach(username => {
+                        const matchedUser = participants.get(username.toLowerCase());
+                        if (matchedUser && matchedUser.id !== user.id) {
+                            sendUserNotification(matchedUser.id, {
+                                type: "mention",
+                                actorUsername: user.username,
+                                actorId: user.id,
+                                postId: post.id,
+                                postTitle: post.title,
+                                commentId: newCommentObj.id,
+                                commentPreview: finalContent.substring(0, 80)
+                            });
+                        }
+                    });
+                } catch (e) {
+                    // skip silently
+                }
             }
 
             setNewComment("");
