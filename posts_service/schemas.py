@@ -34,6 +34,7 @@ class UserBase(BaseModel):
     email: str
     username: str
     role: str = "user"
+    profile_meta: dict | None = None
     created_at: datetime
 
 class Post(PostBase):

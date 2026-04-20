@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router";
-import { postsClient } from "../api";
+import { postsClient, usersClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
 
@@ -25,6 +25,7 @@ type UserProfile = {
     id: number;
     username: string;
     created_at: string;
+    profile_meta?: any;
     posts: Post[];
     comments: Comment[];
 };
@@ -41,8 +42,17 @@ export default function Profile() {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const res = await postsClient.get(`/users/${userId}`);
-                setProfileData(res.data);
+                // Fetch posts/comments from posts_service
+                const [postsRes, metaRes] = await Promise.all([
+                    postsClient.get(`/users/${userId}`),
+                    // Fetch profile_meta from users_service (authoritative source) to bypass replica sync issues 
+                    usersClient.get(`/users/${userId}/profile_meta`).catch(() => ({ data: { profile_meta: {} } }))
+                ]);
+                const merged = {
+                    ...postsRes.data,
+                    profile_meta: metaRes.data.profile_meta || postsRes.data.profile_meta || {}
+                };
+                setProfileData(merged);
             } catch (err) {
                 console.error("Failed to fetch profile", err);
                 setError("Could not load user profile.");
@@ -61,6 +71,12 @@ export default function Profile() {
         const date = new Date(profileData.created_at);
         return `Joined ${date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
     }, [profileData?.created_at]);
+
+    const profileMeta = useMemo(() => {
+        if (profileData?.profile_meta) return profileData.profile_meta;
+        return {};
+    }, [profileData?.profile_meta]);
+
 
     const totalLikes = useMemo(() => {
         if (!profileData?.posts) return 0;
@@ -96,14 +112,107 @@ export default function Profile() {
                     <h1 className="text-3xl font-extrabold text-foreground">{profileData.username}</h1>
                     {joinedDate && <p className="text-foreground-muted text-sm mt-1 mb-2 font-medium">{joinedDate}</p>}
 
+                    {profileMeta.bio && (
+                        <p className="text-sm text-foreground text-center max-w-sm 
+                                      leading-relaxed mt-1 mb-2">
+                            {profileMeta.bio}
+                        </p>
+                    )}
+
+                    {/* ── Premium Metadata Bar */}
+                    {(profileMeta.location || profileMeta.website || profileMeta.twitter || profileMeta.github) && (
+                        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 
+                                        mt-4 px-6 py-3 rounded-2xl bg-surface-raised/50 
+                                        border border-border-subtle backdrop-blur-md shadow-sm">
+                            
+                            {/* Location Pill */}
+                            {profileMeta.location && (profileMeta.privacy?.showLocation ?? true) && (
+                                <div className="flex items-center gap-1.5 text-xs font-semibold
+                                                text-foreground-muted bg-surface border border-border-subtle
+                                                px-3 py-1.5 rounded-full shadow-sm hover:border-brand/40 
+                                                transition-all duration-300">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                                         strokeLinejoin="round" className="text-brand/70">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    {profileMeta.location}
+                                </div>
+                            )}
+
+                            {/* Divider for socials if location exists */}
+                            {profileMeta.location && (profileMeta.privacy?.showLocation ?? true) && (profileMeta.website || profileMeta.twitter || profileMeta.github) && (
+                                <div className="hidden sm:block w-px h-4 bg-border-subtle"></div>
+                            )}
+
+                            {/* Social Icons Group */}
+                            <div className="flex items-center gap-2">
+                                {profileMeta.website && (profileMeta.privacy?.showWebsite ?? true) && (
+                                    <a
+                                        href={profileMeta.website.startsWith("http")
+                                            ? profileMeta.website
+                                            : `https://${profileMeta.website}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Website"
+                                        className="p-2 text-foreground-muted hover:text-brand 
+                                                 hover:bg-brand-subtle rounded-xl transition-all 
+                                                 duration-200 press-effect"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                                             strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10
+                                                     15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                        </svg>
+                                    </a>
+                                )}
+
+                                {profileMeta.twitter && (profileMeta.privacy?.showTwitter ?? true) && (
+                                    <a
+                                        href={`https://x.com/${profileMeta.twitter}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Twitter / X"
+                                        className="p-2 text-foreground-muted hover:text-brand 
+                                                 hover:bg-brand-subtle rounded-xl transition-all 
+                                                 duration-200 press-effect"
+                                    >
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                        </svg>
+                                    </a>
+                                )}
+
+                                {profileMeta.github && (profileMeta.privacy?.showGithub ?? true) && (
+                                    <a
+                                        href={`https://github.com/${profileMeta.github}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="GitHub"
+                                        className="p-2 text-foreground-muted hover:text-brand 
+                                                 hover:bg-brand-subtle rounded-xl transition-all 
+                                                 duration-200 press-effect"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s 2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                                        </svg>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {isCurrentUser && (
                         <div className="mt-4 flex gap-3">
-                            <button className="px-5 py-2 border border-border-subtle bg-surface hover:bg-surface-hover text-foreground shadow-sm rounded-lg text-sm font-semibold hover:border-brand hover:text-brand transition-colors cursor-pointer">
+                            <Link
+                                to="/settings/profile"
+                                className="px-5 py-2 border border-border-subtle bg-surface hover:bg-surface-hover text-foreground shadow-sm rounded-lg text-sm font-semibold hover:border-brand hover:text-brand transition-colors cursor-pointer text-center"
+                            >
                                 Edit Profile
-                            </button>
-                            <Link to="/notifications" className="px-5 py-2 border border-border-subtle bg-surface hover:bg-surface-hover text-foreground shadow-sm rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
-                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                                Notifications
                             </Link>
                         </div>
                     )}

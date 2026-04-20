@@ -3,6 +3,8 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   --color-brand: var(--theme-brand);
   --color-brand-hover: var(--theme-brand-hover);
@@ -15,6 +17,7 @@
   --color-foreground-muted: var(--theme-foreground-muted);
 
   --color-border-subtle: var(--theme-border-subtle);
+  --color-border-strong: var(--theme-border-strong);
 }
 
 @layer base {
@@ -39,6 +42,8 @@
 
     --theme-border-subtle: #e5e7eb;
     /* Gray 200 */
+    --theme-border-strong: #d1d5db;
+    /* Gray 300 */
   }
 
   /* Dark mode overrides (Soft dark grays instead of navy) */
@@ -64,6 +69,8 @@
 
       --theme-border-subtle: #374151;
       /* Gray 700 */
+      --theme-border-strong: #4b5563;
+      /* Gray 600 */
     }
   }
 
@@ -88,6 +95,8 @@
 
     --theme-border-subtle: #374151;
     /* Gray 700 */
+    --theme-border-strong: #4b5563;
+    /* Gray 600 */
   }
 }
 
@@ -107,6 +116,29 @@ body {
     @apply text-base leading-relaxed;
     color: var(--color-foreground);
   }
+
+  .input-base {
+    @apply w-full px-4 py-2.5 bg-background border border-border-subtle rounded-xl 
+           focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent 
+           transition-all text-foreground text-sm font-medium shadow-sm 
+           placeholder:text-foreground-muted;
+  }
+
+  .btn-primary {
+    @apply px-5 py-2.5 bg-brand text-surface rounded-xl shadow-md 
+           hover:shadow-lg hover:shadow-brand/20 hover:bg-brand-hover 
+           transition-all font-semibold font-display inline-flex items-center 
+           justify-center gap-2 cursor-pointer;
+  }
+
+  .btn-ghost {
+    @apply px-5 py-2.5 bg-transparent border-2 border-border-subtle 
+           text-foreground-muted rounded-xl hover:border-border-strong 
+           hover:bg-surface-hover hover:text-foreground transition-all 
+           font-semibold font-display inline-flex items-center justify-center 
+           gap-2 cursor-pointer;
+  }
+
 
   /* Skeleton Animation Keyframes */
   @keyframes fadeIn {

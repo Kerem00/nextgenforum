@@ -34,12 +34,13 @@ async def get_current_user_token(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
-        email: str = payload.get("sub")
+        user_id: int | None = payload.get("user_id") or int(payload.get("sub")) if payload.get("sub") and payload.get("sub").isdigit() else None
+        email: str = payload.get("sub") if not payload.get("sub", "").isdigit() else payload.get("email") # fallback if sub is user_id
         username: str = payload.get("username")
         role: str = payload.get("role", "user")
-        if email is None:
+        if email is None and username is None and user_id is None:
             raise credentials_exception
-        token_data = schemas.TokenData(email=email, username=username, role=role)
+        token_data = schemas.TokenData(user_id=user_id, email=email, username=username, role=role)
     except InvalidTokenError:
         raise credentials_exception
     return token_data

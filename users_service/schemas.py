@@ -9,9 +9,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class ProfileMetaUpdate(BaseModel):
+    profile_meta: dict | None = None
+
 class User(UserBase):
     id: int
     role: str = "user"
+    profile_meta: dict | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -21,6 +25,7 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
+    user_id: int | None = None
     email: str | None = None
     username: str | None = None
     role: str | None = None

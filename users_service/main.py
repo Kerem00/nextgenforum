@@ -11,8 +11,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from sqlalchemy import text
     async with database.engine.begin() as conn:
         await conn.run_sync(models.Base.metadata.create_all)
+
+    try:
+        async with database.engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_meta JSON"))
+    except Exception as e:
+        print("Could not add profile_meta column:", e)
     
     # Auto-create admin user if not exists
     async with database.AsyncSessionLocal() as session:
@@ -37,7 +44,8 @@ async def lifespan(app: FastAPI):
                     "id": admin_user.id,
                     "email": admin_user.email,
                     "username": admin_user.username,
-                    "role": admin_user.role
+                    "role": admin_user.role,
+                    "profile_meta": admin_user.profile_meta
                 })
             except Exception as e:
                 print(f"Failed to publish admin user creation: {e}")
@@ -49,7 +57,8 @@ async def lifespan(app: FastAPI):
                     "id": admin_user.id,
                     "email": admin_user.email,
                     "username": admin_user.username,
-                    "role": admin_user.role
+                    "role": admin_user.role,
+                    "profile_meta": admin_user.profile_meta
                 })
             except Exception as e:
                 print(f"Failed to publish admin user sync: {e}")
@@ -153,10 +162,54 @@ async def update_user(user_id: int, user: schemas.UserCreate, db: AsyncSession =
         "id": db_user.id,
         "email": db_user.email,
         "username": db_user.username,
-        "role": db_user.role
+        "role": db_user.role,
+        "profile_meta": db_user.profile_meta
     })
 
     return db_user
+
+@app.patch("/users/me/profile_meta", response_model=schemas.User)
+async def update_profile_meta(
+    meta_update: schemas.ProfileMetaUpdate,
+    current_user: Annotated[schemas.TokenData, Depends(auth.get_current_user_token)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    # Robust lookup: try ID first, then email/username (fallback for older tokens)
+    if current_user.user_id:
+        result = await db.execute(select(models.User).where(models.User.id == current_user.user_id))
+    elif current_user.email:
+        result = await db.execute(select(models.User).where(models.User.email == current_user.email))
+    else:
+        result = await db.execute(select(models.User).where(models.User.username == current_user.username))
+        
+    db_user = result.scalar_one_or_none()
+    
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    db_user.profile_meta = meta_update.profile_meta
+    await db.commit()
+    await db.refresh(db_user)
+    
+    # Publish event
+    await producer.publish_event("user_updated", {
+        "id": db_user.id,
+        "email": db_user.email,
+        "username": db_user.username,
+        "role": db_user.role,
+        "profile_meta": db_user.profile_meta
+    })
+    
+    return db_user
+
+@app.get("/users/{user_id}/profile_meta")
+async def get_user_profile_meta(user_id: int, db: AsyncSession = Depends(database.get_db)):
+    """Public endpoint to fetch a user's profile_meta directly from the source of truth."""
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"profile_meta": user.profile_meta or {}}
 
 @app.get("/admin/users", response_model=list[schemas.AdminUser])
 async def get_all_users(

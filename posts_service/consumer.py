@@ -24,12 +24,12 @@ async def process_message(message: aio_pika.IncomingMessage):
                     # but here straightforward logic works too since we mirror.
                     # Or better: standard merge/upsert.
                     
-                    # Using PostgreSQL specific upsert
                     stmt = insert(models.User).values(
                         id=user_data["id"],
                         email=user_data["email"],
                         username=user_data["username"],
-                        role=user_data.get("role", "user")
+                        role=user_data.get("role", "user"),
+                        profile_meta=user_data.get("profile_meta")
                     )
                     
                     # If conflict on primary key (id), update the columns
@@ -38,7 +38,8 @@ async def process_message(message: aio_pika.IncomingMessage):
                         set_=dict(
                             email=user_data["email"],
                             username=user_data["username"],
-                            role=user_data.get("role", "user")
+                            role=user_data.get("role", "user"),
+                            profile_meta=user_data.get("profile_meta")
                         )
                     )
                     

@@ -28,6 +28,13 @@ async def lifespan(app: FastAPI):
         async with database.engine.begin() as conn:
             await conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS ai_assist JSON"))
     except Exception as e:
+        pass
+
+    try:
+        async with database.engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_meta JSON"))
+    except Exception as e:
+        pass
         print("Failed to add ai_assist column:", e)
     
     # Start consumer in background

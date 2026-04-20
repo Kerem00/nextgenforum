@@ -17,6 +17,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     username = Column(String, unique=True, index=True)
     role = Column(String, default="user", nullable=False)
+    profile_meta = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     posts = relationship("Post", back_populates="owner")

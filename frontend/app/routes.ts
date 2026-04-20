@@ -9,7 +9,8 @@ export default [
         route("users/:userId", "routes/profile.tsx"),
         route("admin", "routes/admin.tsx"),
         route("notifications", "routes/notifications.tsx"),
-        route("bookmarks", "routes/bookmarks.tsx")
+        route("bookmarks", "routes/bookmarks.tsx"),
+        route("settings/profile", "routes/edit-profile.tsx")
     ])
 ] satisfies RouteConfig;
 
