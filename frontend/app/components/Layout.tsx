@@ -92,6 +92,15 @@ export default function Layout() {
 
                         {user ? (
                             <>
+                                <Link
+                                    to="/bookmarks"
+                                    className="text-foreground-muted hover:text-brand transition-colors p-1 cursor-pointer flex items-center justify-center h-8 w-8 rounded-full hover:bg-surface-hover"
+                                    title="Bookmarks"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                </Link>
                                 <Link to="/notifications" className="text-sm font-medium text-foreground hover:text-foreground-muted transition-colors flex items-center gap-1.5" title="Notifications">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
                                     {unreadCount > 0 && (
@@ -186,6 +195,13 @@ export default function Layout() {
                             
                             {user ? (
                                 <>
+                                    <Link
+                                        to="/bookmarks"
+                                        className="text-sm font-medium text-foreground hover:text-brand p-2 rounded-md hover:bg-surface-hover flex items-center gap-3"
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                                        Bookmarks
+                                    </Link>
                                     <Link to="/notifications" className="text-sm font-medium text-foreground hover:text-brand p-2 rounded-md hover:bg-surface-hover flex items-center justify-between">
                                         Notifications
                                         {unreadCount > 0 && (

@@ -8,6 +8,9 @@ export default [
         route("posts/:postId", "routes/post.tsx"),
         route("users/:userId", "routes/profile.tsx"),
         route("admin", "routes/admin.tsx"),
-        route("notifications", "routes/notifications.tsx")
+        route("notifications", "routes/notifications.tsx"),
+        route("bookmarks", "routes/bookmarks.tsx")
     ])
 ] satisfies RouteConfig;
+
+// Trigger refresh

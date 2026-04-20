@@ -182,6 +182,40 @@ export default function Home() {
   const [lastRead, setLastRead] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(false);
 
+  const [bookmarks, setBookmarks] = useState<number[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("ngf_bookmarks") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  const toggleBookmark = (
+    e: React.MouseEvent,
+    postId: number,
+    postTitle: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const isBookmarked = bookmarks.includes(postId);
+    
+    setBookmarks(prev => {
+      const isCurrentlyBookmarked = prev.includes(postId);
+      const next = isCurrentlyBookmarked
+        ? prev.filter(id => id !== postId)
+        : [...prev, postId];
+      
+      localStorage.setItem("ngf_bookmarks", JSON.stringify(next));
+      return next;
+    });
+
+    showToast(
+      isBookmarked ? "Removed from saved" : "Saved to bookmarks",
+      isBookmarked ? "info" : "success"
+    );
+  };
+
   // ─── Refs ─────────────────────────────────────────────────────────
   const formRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
@@ -596,7 +630,28 @@ export default function Home() {
                   <div className="relative overflow-hidden rounded-xl">
                     {/* Gradient top border on hover */}
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand to-brand/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-                    <div className="card-surface hover-shadow-brand rounded-xl border border-border-subtle p-5 shadow-sm group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200">
+                    <div className="card-surface hover-shadow-brand rounded-xl border border-border-subtle p-5 shadow-sm group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200 relative overflow-visible">
+                      <button
+                        onClick={(e) => toggleBookmark(e, post.id, post.title)}
+                        className={`absolute top-3 right-12 p-1.5 rounded-lg transition-all 
+                                    duration-200 cursor-pointer press-effect z-10
+                                    sm:opacity-0 sm:group-hover:opacity-100 opacity-100 focus:opacity-100
+                                    ${bookmarks.includes(post.id)
+                                      ? "text-brand bg-brand-subtle"
+                                      : "text-foreground-muted hover:text-brand hover:bg-brand-subtle"
+                                    }`}
+                        title={bookmarks.includes(post.id) ? "Remove bookmark" : "Save post"}
+                        aria-label={bookmarks.includes(post.id) ? "Remove bookmark" : "Save post"}
+                      >
+                        <svg
+                          width="15" height="15" viewBox="0 0 24 24"
+                          fill={bookmarks.includes(post.id) ? "currentColor" : "none"}
+                          stroke="currentColor" strokeWidth="2"
+                          strokeLinecap="round" strokeLinejoin="round"
+                        >
+                          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                        </svg>
+                      </button>
                       {/* Admin delete */}
                       {isAdmin(user) && (
                         <div className="absolute top-4 right-4 z-10" onClick={(e) => e.preventDefault()}>

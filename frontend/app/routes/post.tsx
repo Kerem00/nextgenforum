@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router";
 import { postsClient } from "../api";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -100,8 +101,37 @@ function renderCommentContent(text: string, knownUsers: { id: number, username: 
 export default function PostDetail() {
     const { postId } = useParams();
     const { user } = useAuth();
+    const { showToast } = useToast();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    const [bookmarks, setBookmarks] = useState<number[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem("ngf_bookmarks") || "[]");
+        } catch {
+            return [];
+        }
+    });
+
+    const toggleBookmark = () => {
+        if (!post) return;
+        const isBookmarked = bookmarks.includes(post.id);
+
+        setBookmarks(prev => {
+            const isCurrentlyBookmarked = prev.includes(post.id);
+            const next = isCurrentlyBookmarked
+                ? prev.filter(id => id !== post.id)
+                : [...prev, post.id];
+            
+            localStorage.setItem("ngf_bookmarks", JSON.stringify(next));
+            return next;
+        });
+
+        showToast(
+            isBookmarked ? "Removed from saved" : "Saved to bookmarks",
+            isBookmarked ? "info" : "success"
+        );
+    };
 
     const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -742,6 +772,18 @@ export default function PostDetail() {
                                         <line x1="12" y1="2" x2="12" y2="15"></line>
                                     </svg>
                                     <span className="font-medium">{isCopied ? "Copied!" : "Share"}</span>
+                                </button>
+                                <button
+                                    onClick={toggleBookmark}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${bookmarks.includes(post.id)
+                                        ? "bg-brand/10 border-brand/50 text-brand shadow-[0_0_15px_rgba(var(--theme-brand-base),0.2)] scale-105"
+                                        : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"}`}
+                                    title={bookmarks.includes(post.id) ? "Remove bookmark" : "Save post"}
+                                >
+                                    <svg className={`w-4 h-4 transition-transform duration-300 ${bookmarks.includes(post.id) ? "fill-current scale-110" : "fill-none stroke-current"}`} viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                                    </svg>
+                                    <span className="font-medium">{bookmarks.includes(post.id) ? "Saved" : "Save"}</span>
                                 </button>
                             </>
                         ) : (
