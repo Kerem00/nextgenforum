@@ -103,6 +103,19 @@ export default function PostDetail() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
+    const [scrollProgress, setScrollProgress] = useState(0);
+
+    useEffect(() => {
+        const onScroll = () => {
+            const el = document.documentElement;
+            const scrolled = el.scrollTop;
+            const total = el.scrollHeight - el.clientHeight;
+            setScrollProgress(total > 0 ? (scrolled / total) * 100 : 0);
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
+
     const [post, setPost] = useState<Post | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -560,6 +573,19 @@ export default function PostDetail() {
 
     return (
         <div className="max-w-3xl mx-auto space-y-8">
+            <div
+                style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    height: "3px",
+                    width: `${scrollProgress}%`,
+                    background: "linear-gradient(90deg, var(--theme-brand), #c084fc)",
+                    zIndex: 9999,
+                    transition: "width 0.1s linear",
+                    pointerEvents: "none",
+                }}
+            />
             <nav className="flex items-center gap-2 text-sm text-foreground-muted mb-6">
                 <Link to="/" className="hover:text-foreground transition-colors flex items-center gap-1">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -593,139 +619,139 @@ export default function PostDetail() {
                 <Card padding="p-5 md:p-6" className={`shadow-sm relative ${searchParams.get('report_visit') === 'true' ? (searchParams.get('status') === 'banned' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] bg-red-500/10 ring-4 ring-red-500/40' : 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] bg-blue-500/10 ring-4 ring-blue-500/40') : ''}`}>
                     {user && (
                         <div className="absolute top-4 right-4 md:top-5 md:right-5" ref={postMenuRef}>
-                        <button
-                            onClick={() => setShowPostMenu(!showPostMenu)}
-                            className="text-foreground-muted hover:text-foreground p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-                        </button>
-                        <div className={`absolute right-0 top-full mt-1 w-40 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showPostMenu ? 'opacity-100 scale-100 max-h-[200px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
-                            {(user.id === post.owner_id || isAdmin) && (
-                                <button
-                                    onClick={() => { setEditingPost(true); setEditPostTitle(post.title); setEditPostContent(post.content); setShowPostMenu(false); }}
-                                    className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
-                                >
-                                    Edit Post
-                                </button>
-                            )}
-                            {isAdmin && (
-                                confirmDeletePost ? (
-                                    <div className="px-4 py-2 flex items-center gap-2">
-                                        <span className="text-xs text-red-500">Sure?</span>
-                                        <button onClick={handleAdminDeletePost} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer">Yes</button>
-                                        <button onClick={() => setConfirmDeletePost(false)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer">No</button>
-                                    </div>
-                                ) : (
+                            <button
+                                onClick={() => setShowPostMenu(!showPostMenu)}
+                                className="text-foreground-muted hover:text-foreground p-2 rounded-md hover:bg-background transition-colors cursor-pointer"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+                            </button>
+                            <div className={`absolute right-0 top-full mt-1 w-40 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showPostMenu ? 'opacity-100 scale-100 max-h-[200px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+                                {(user.id === post.owner_id || isAdmin) && (
                                     <button
-                                        onClick={() => { setConfirmDeletePost(true); }}
+                                        onClick={() => { setEditingPost(true); setEditPostTitle(post.title); setEditPostContent(post.content); setShowPostMenu(false); }}
+                                        className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
+                                    >
+                                        Edit Post
+                                    </button>
+                                )}
+                                {isAdmin && (
+                                    confirmDeletePost ? (
+                                        <div className="px-4 py-2 flex items-center gap-2">
+                                            <span className="text-xs text-red-500">Sure?</span>
+                                            <button onClick={handleAdminDeletePost} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer">Yes</button>
+                                            <button onClick={() => setConfirmDeletePost(false)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer">No</button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => { setConfirmDeletePost(true); }}
+                                            className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                        >
+                                            Delete Post
+                                        </button>
+                                    )
+                                )}
+                                {user.id !== post.owner_id && !isAdmin && (
+                                    <button
+                                        onClick={() => handleReport('post', post.id)}
                                         className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                     >
-                                        Delete Post
+                                        Report Post
                                     </button>
-                                )
-                            )}
-                            {user.id !== post.owner_id && !isAdmin && (
-                                <button
-                                    onClick={() => handleReport('post', post.id)}
-                                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-                                >
-                                    Report Post
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
+                                {post.category}
+                            </span>
+                            <span className="text-xs text-foreground-muted">{timeAgo(post.created_at)}</span>
+                        </div>
+                        {post.is_edited && (
+                            <span className="text-xs text-foreground-muted italic">Edited</span>
+                        )}
+                    </div>
+
+                    {editingPost ? (
+                        <div className="space-y-4 mb-8 pr-12">
+                            <input
+                                type="text"
+                                value={editPostTitle}
+                                onChange={(e) => setEditPostTitle(e.target.value)}
+                                className="w-full px-4 py-2 text-xl font-bold bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand text-foreground"
+                            />
+                            <MarkdownTextarea
+                                value={editPostContent}
+                                onValueChange={setEditPostContent}
+                                className="min-h-[150px]"
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={handleSavePostEdit} disabled={submitEditPost} className="px-4 py-2 bg-brand text-surface rounded-md text-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer">
+                                    {submitEditPost ? "Saving..." : "Save Changes"}
                                 </button>
-                            )}
+                                <button onClick={() => setEditingPost(false)} className="px-4 py-2 bg-background text-foreground border border-border-subtle rounded-md text-sm font-medium hover:bg-surface-hover transition-colors cursor-pointer">
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
-                            {post.category}
-                        </span>
-                        <span className="text-xs text-foreground-muted">{timeAgo(post.created_at)}</span>
-                    </div>
-                    {post.is_edited && (
-                        <span className="text-xs text-foreground-muted italic">Edited</span>
-                    )}
-                </div>
-
-                {editingPost ? (
-                    <div className="space-y-4 mb-8 pr-12">
-                        <input
-                            type="text"
-                            value={editPostTitle}
-                            onChange={(e) => setEditPostTitle(e.target.value)}
-                            className="w-full px-4 py-2 text-xl font-bold bg-background border border-border-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-brand text-foreground"
-                        />
-                        <MarkdownTextarea
-                            value={editPostContent}
-                            onValueChange={setEditPostContent}
-                            className="min-h-[150px]"
-                        />
-                        <div className="flex gap-2">
-                            <button onClick={handleSavePostEdit} disabled={submitEditPost} className="px-4 py-2 bg-brand text-surface rounded-md text-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer">
-                                {submitEditPost ? "Saving..." : "Save Changes"}
-                            </button>
-                            <button onClick={() => setEditingPost(false)} className="px-4 py-2 bg-background text-foreground border border-border-subtle rounded-md text-sm font-medium hover:bg-surface-hover transition-colors cursor-pointer">
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3 pr-10">{post.title}</h1>
-                        <div className="text-sm text-foreground-muted mb-6 flex items-center gap-2">
-                            <Link to={`/users/${post.owner_id}`} className="flex items-center gap-2 hover:text-brand transition-colors">
-                                <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
-                                    {post.owner.username.charAt(0)}
-                                </div>
-                                <span>{post.owner.username}</span>
-                            </Link>
-                        </div>
-                        <div className="markdown-content max-w-none text-foreground mb-8">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {post.content}
-                            </ReactMarkdown>
-                        </div>
-                    </>
-                )}
-
-                <div className="flex items-center justify-start gap-4 mt-8 border-t border-border-subtle pt-6">
-                    {user ? (
-                        <>
-                            <button
-                                onClick={handleLikePost}
-                                disabled={likingPost}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${isPostLikedByMe
-                                    ? "bg-red-50 dark:bg-red-900/20 border-red-500 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)] scale-105"
-                                    : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"
-                                    } disabled:opacity-50`}
-                            >
-                                <svg className={`w-4 h-4 transition-transform duration-300 ${isPostLikedByMe ? "fill-current scale-110" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isPostLikedByMe ? "0" : "2"}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                <span className="font-medium">{isPostLikedByMe ? "Liked" : "Like"}</span>
-                                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-background/50 text-[10px] text-foreground font-bold">{post.likes?.length || 0}</span>
-                            </button>
-                            <button
-                                onClick={handleSharePost}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${isCopied
-                                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105"
-                                    : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"}`}
-                            >
-                                <svg className={`w-4 h-4 transition-transform duration-300 ${isCopied ? "stroke-blue-500 scale-110" : "stroke-current"}`} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                                    <polyline points="16 6 12 2 8 6"></polyline>
-                                    <line x1="12" y1="2" x2="12" y2="15"></line>
-                                </svg>
-                                <span className="font-medium">{isCopied ? "Copied!" : "Share"}</span>
-                            </button>
-                        </>
                     ) : (
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-subtle bg-background text-foreground-muted text-sm">
-                            <span className="text-base leading-none">♥</span>
-                            <span className="font-medium">{post.likes?.length || 0} Likes</span>
-                        </div>
+                        <>
+                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground mb-3 pr-10">{post.title}</h1>
+                            <div className="text-sm text-foreground-muted mb-6 flex items-center gap-2">
+                                <Link to={`/users/${post.owner_id}`} className="flex items-center gap-2 hover:text-brand transition-colors">
+                                    <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
+                                        {post.owner.username.charAt(0)}
+                                    </div>
+                                    <span>{post.owner.username}</span>
+                                </Link>
+                            </div>
+                            <div className="markdown-content max-w-none text-foreground mb-8">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {post.content}
+                                </ReactMarkdown>
+                            </div>
+                        </>
                     )}
-                </div>
-            </Card>
+
+                    <div className="flex items-center justify-start gap-4 mt-8 border-t border-border-subtle pt-6">
+                        {user ? (
+                            <>
+                                <button
+                                    onClick={handleLikePost}
+                                    disabled={likingPost}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${isPostLikedByMe
+                                        ? "bg-red-50 dark:bg-red-900/20 border-red-500 text-red-600 dark:text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)] scale-105"
+                                        : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"
+                                        } disabled:opacity-50`}
+                                >
+                                    <svg className={`w-4 h-4 transition-transform duration-300 ${isPostLikedByMe ? "fill-current scale-110" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isPostLikedByMe ? "0" : "2"}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                    <span className="font-medium">{isPostLikedByMe ? "Liked" : "Like"}</span>
+                                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-background/50 text-[10px] text-foreground font-bold">{post.likes?.length || 0}</span>
+                                </button>
+                                <button
+                                    onClick={handleSharePost}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${isCopied
+                                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-600 dark:text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105"
+                                        : "bg-background border-border-subtle text-foreground hover:bg-surface-hover hover:border-brand/40"}`}
+                                >
+                                    <svg className={`w-4 h-4 transition-transform duration-300 ${isCopied ? "stroke-blue-500 scale-110" : "stroke-current"}`} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                                        <polyline points="16 6 12 2 8 6"></polyline>
+                                        <line x1="12" y1="2" x2="12" y2="15"></line>
+                                    </svg>
+                                    <span className="font-medium">{isCopied ? "Copied!" : "Share"}</span>
+                                </button>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-subtle bg-background text-foreground-muted text-sm">
+                                <span className="text-base leading-none">♥</span>
+                                <span className="font-medium">{post.likes?.length || 0} Likes</span>
+                            </div>
+                        )}
+                    </div>
+                </Card>
             </div>
 
             <section className="space-y-6">
@@ -808,130 +834,130 @@ export default function PostDetail() {
                             <div key={comment.id} id={`comment-${comment.id}`}>
                                 <Card padding="p-5 py-4" className={`flex gap-4 relative group ${comment.is_pinned ? 'border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.1)]' : ''} ${highlightClass}`}>
                                     <div className={`w-8 h-8 rounded-full ${hashColor(comment.owner.username)} text-white flex items-center justify-center font-bold flex-shrink-0 text-sm uppercase`}>
-                                    {comment.owner.username.charAt(0)}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <Link to={`/users/${comment.owner_id}`} className="font-medium text-foreground text-sm hover:text-brand transition-colors">
-                                                {comment.owner.username}
-                                            </Link>
-                                            <span className="text-xs text-foreground-muted">{timeAgo(comment.created_at)}</span>
-                                            {comment.is_pinned && <span className="text-xs font-semibold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded border border-green-500/20">Pinned comment</span>}
-                                            {comment.is_edited && <span className="text-xs text-foreground-muted italic">Edited</span>}
-                                        </div>
+                                        {comment.owner.username.charAt(0)}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <Link to={`/users/${comment.owner_id}`} className="font-medium text-foreground text-sm hover:text-brand transition-colors">
+                                                    {comment.owner.username}
+                                                </Link>
+                                                <span className="text-xs text-foreground-muted">{timeAgo(comment.created_at)}</span>
+                                                {comment.is_pinned && <span className="text-xs font-semibold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded border border-green-500/20">Pinned comment</span>}
+                                                {comment.is_edited && <span className="text-xs text-foreground-muted italic">Edited</span>}
+                                            </div>
 
-                                        {user && (
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex items-center gap-1.5 mix-blend-luminosity hover:mix-blend-normal">
+                                            {user && (
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1.5 mix-blend-luminosity hover:mix-blend-normal">
+                                                        <button
+                                                            onClick={() => handleLikeComment(comment.id)}
+                                                            disabled={likingComments[comment.id]}
+                                                            className={`transition-all duration-300 transform cursor-pointer ${isCommentLikedByMe
+                                                                ? "text-red-500 scale-110 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                                                                : "text-foreground-muted hover:text-red-400 hover:scale-110"
+                                                                }`}
+                                                            title={isCommentLikedByMe ? "Unlike" : "Like"}
+                                                        >
+                                                            <svg className={`w-5 h-5 ${isCommentLikedByMe ? "fill-current" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isCommentLikedByMe ? "0" : "2"}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                                        </button>
+                                                        <span className={`text-xs font-semibold ${isCommentLikedByMe ? "text-red-500" : "text-foreground-muted"}`}>
+                                                            {comment.likes?.length || 0}
+                                                        </span>
+                                                    </div>
+
                                                     <button
-                                                        onClick={() => handleLikeComment(comment.id)}
-                                                        disabled={likingComments[comment.id]}
-                                                        className={`transition-all duration-300 transform cursor-pointer ${isCommentLikedByMe
-                                                            ? "text-red-500 scale-110 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-                                                            : "text-foreground-muted hover:text-red-400 hover:scale-110"
-                                                            }`}
-                                                        title={isCommentLikedByMe ? "Unlike" : "Like"}
+                                                        onClick={() => handleReply(comment.id, comment.owner.username)}
+                                                        className="text-xs font-medium text-foreground-muted hover:text-foreground transition-colors cursor-pointer ml-1"
                                                     >
-                                                        <svg className={`w-5 h-5 ${isCommentLikedByMe ? "fill-current" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isCommentLikedByMe ? "0" : "2"}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                                        Reply
                                                     </button>
-                                                    <span className={`text-xs font-semibold ${isCommentLikedByMe ? "text-red-500" : "text-foreground-muted"}`}>
-                                                        {comment.likes?.length || 0}
-                                                    </span>
-                                                </div>
 
-                                                <button
-                                                    onClick={() => handleReply(comment.id, comment.owner.username)}
-                                                    className="text-xs font-medium text-foreground-muted hover:text-foreground transition-colors cursor-pointer ml-1"
-                                                >
-                                                    Reply
-                                                </button>
-
-                                                <div className="relative" ref={showCommentMenu === comment.id ? commentMenuRef : null}>
-                                                    <button
-                                                        onClick={() => setShowCommentMenu(showCommentMenu === comment.id ? null : comment.id)}
-                                                        className={`text-foreground-muted hover:text-foreground transition-opacity p-1 rounded-md hover:bg-background cursor-pointer ${showCommentMenu === comment.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                                                    >
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
-                                                    </button>
-                                                    <div className={`absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showCommentMenu === comment.id ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
-                                                        {(user.id === post.owner_id || isAdmin) && (
-                                                            <button
-                                                                onClick={() => { handlePinComment(comment.id); setShowCommentMenu(null); }}
-                                                                className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
-                                                            >
-                                                                {comment.is_pinned ? "Unpin Comment" : "Pin Comment"}
-                                                            </button>
-                                                        )}
-                                                        {(user.id === comment.owner_id || isAdmin) && (
-                                                            <button
-                                                                onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentMenu(null); }}
-                                                                className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
-                                                            >
-                                                                Edit Comment
-                                                            </button>
-                                                        )}
-                                                        {isAdmin && (
-                                                            confirmDeleteCommentId === comment.id ? (
-                                                                <div className="px-4 py-2 flex items-center gap-2">
-                                                                    <span className="text-xs text-red-500">Sure?</span>
-                                                                    <button onClick={() => handleAdminDeleteComment(comment.id)} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer">Yes</button>
-                                                                    <button onClick={() => setConfirmDeleteCommentId(null)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer">No</button>
-                                                                </div>
-                                                            ) : (
+                                                    <div className="relative" ref={showCommentMenu === comment.id ? commentMenuRef : null}>
+                                                        <button
+                                                            onClick={() => setShowCommentMenu(showCommentMenu === comment.id ? null : comment.id)}
+                                                            className={`text-foreground-muted hover:text-foreground transition-opacity p-1 rounded-md hover:bg-background cursor-pointer ${showCommentMenu === comment.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" /></svg>
+                                                        </button>
+                                                        <div className={`absolute right-0 top-full mt-1 w-48 bg-surface rounded-xl shadow-lg border border-border-subtle z-10 py-1 text-sm overflow-hidden transition-all duration-200 origin-top-right ${showCommentMenu === comment.id ? 'opacity-100 scale-100 max-h-[250px]' : 'opacity-0 scale-95 pointer-events-none max-h-0'}`}>
+                                                            {(user.id === post.owner_id || isAdmin) && (
                                                                 <button
-                                                                    onClick={() => setConfirmDeleteCommentId(comment.id)}
+                                                                    onClick={() => { handlePinComment(comment.id); setShowCommentMenu(null); }}
+                                                                    className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
+                                                                >
+                                                                    {comment.is_pinned ? "Unpin Comment" : "Pin Comment"}
+                                                                </button>
+                                                            )}
+                                                            {(user.id === comment.owner_id || isAdmin) && (
+                                                                <button
+                                                                    onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentMenu(null); }}
+                                                                    className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
+                                                                >
+                                                                    Edit Comment
+                                                                </button>
+                                                            )}
+                                                            {isAdmin && (
+                                                                confirmDeleteCommentId === comment.id ? (
+                                                                    <div className="px-4 py-2 flex items-center gap-2">
+                                                                        <span className="text-xs text-red-500">Sure?</span>
+                                                                        <button onClick={() => handleAdminDeleteComment(comment.id)} className="text-xs font-bold text-red-500 hover:text-red-600 cursor-pointer">Yes</button>
+                                                                        <button onClick={() => setConfirmDeleteCommentId(null)} className="text-xs font-bold text-foreground-muted hover:text-foreground cursor-pointer">No</button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => setConfirmDeleteCommentId(comment.id)}
+                                                                        className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                                                    >
+                                                                        Delete Comment
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                            {user.id !== comment.owner_id && !isAdmin && (
+                                                                <button
+                                                                    onClick={() => handleReport('comment', comment.id)}
                                                                     className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                                                 >
-                                                                    Delete Comment
+                                                                    Report Comment
                                                                 </button>
-                                                            )
-                                                        )}
-                                                        {user.id !== comment.owner_id && !isAdmin && (
-                                                            <button
-                                                                onClick={() => handleReport('comment', comment.id)}
-                                                                className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
-                                                            >
-                                                                Report Comment
-                                                            </button>
-                                                        )}
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
+                                            )}
+                                        </div>
+
+                                        {isEditingThis ? (
+                                            <div className="mt-2 space-y-2">
+                                                <MarkdownTextarea
+                                                    value={editCommentContent}
+                                                    onValueChange={setEditCommentContent}
+                                                    className="min-h-[60px]"
+                                                    onKeyDown={(e) => {
+                                                        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            if (!editCommentContent.trim() || submitEditComment) return;
+                                                            handleSaveCommentEdit(comment.id);
+                                                        }
+                                                    }}
+                                                />
+                                                <p className="text-xs text-foreground-muted">Ctrl+Enter to submit</p>
+                                                <div className="flex gap-2 justify-end">
+                                                    <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 bg-background text-foreground border border-border-subtle rounded text-xs font-medium hover:bg-surface-hover transition-colors cursor-pointer">
+                                                        Cancel
+                                                    </button>
+                                                    <button onClick={() => handleSaveCommentEdit(comment.id)} disabled={submitEditComment} className="px-3 py-1 bg-brand text-surface rounded text-xs font-medium hover:bg-brand-hover transition-colors cursor-pointer">
+                                                        {submitEditComment ? "Saving..." : "Save"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="markdown-content text-foreground text-sm">
+                                                {renderCommentContent(comment.content, Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[])}
                                             </div>
                                         )}
                                     </div>
-
-                                    {isEditingThis ? (
-                                        <div className="mt-2 space-y-2">
-                                            <MarkdownTextarea
-                                                value={editCommentContent}
-                                                onValueChange={setEditCommentContent}
-                                                className="min-h-[60px]"
-                                                onKeyDown={(e) => {
-                                                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        if (!editCommentContent.trim() || submitEditComment) return;
-                                                        handleSaveCommentEdit(comment.id);
-                                                    }
-                                                }}
-                                            />
-                                            <p className="text-xs text-foreground-muted">Ctrl+Enter to submit</p>
-                                            <div className="flex gap-2 justify-end">
-                                                <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 bg-background text-foreground border border-border-subtle rounded text-xs font-medium hover:bg-surface-hover transition-colors cursor-pointer">
-                                                    Cancel
-                                                </button>
-                                                <button onClick={() => handleSaveCommentEdit(comment.id)} disabled={submitEditComment} className="px-3 py-1 bg-brand text-surface rounded text-xs font-medium hover:bg-brand-hover transition-colors cursor-pointer">
-                                                    {submitEditComment ? "Saving..." : "Save"}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="markdown-content text-foreground text-sm">
-                                            {renderCommentContent(comment.content, Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[])}
-                                        </div>
-                                    )}
-                                </div>
-                            </Card>
+                                </Card>
                             </div>
                         );
                     })}

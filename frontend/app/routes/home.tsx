@@ -178,6 +178,10 @@ export default function Home() {
   const [displayCount, setDisplayCount] = useState(10);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  const [showLastRead, setShowLastRead] = useState(false);
+  const [lastRead, setLastRead] = useState<any>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+
   // ─── Refs ─────────────────────────────────────────────────────────
   const formRef = useRef<HTMLDivElement>(null);
   const tabBarRef = useRef<HTMLDivElement>(null);
@@ -321,6 +325,25 @@ export default function Home() {
   }, [loading]);
   useEffect(() => { localStorage.setItem("feed_view_preference", viewMode); }, [viewMode]);
 
+  useEffect(() => {
+    if (user) {
+      const saved = localStorage.getItem("ngf_last_read");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Date.now() - parsed.timestamp < 86400000) {
+            setLastRead(parsed);
+            setShowLastRead(true);
+          }
+        } catch (e) { }
+      }
+    } else {
+      if (!sessionStorage.getItem("ngf_welcome_dismissed")) {
+        setShowWelcome(true);
+      }
+    }
+  }, [user]);
+
   // Fallback stats from posts data
   useEffect(() => {
     if (!forumStats && posts.length > 0) {
@@ -346,9 +369,44 @@ export default function Home() {
       {/* ─── LEFT COLUMN ─── */}
       <div className="flex-1 min-w-0 space-y-5">
 
+        {showWelcome && !user && (
+          <div className="relative rounded-2xl bg-gradient-to-br from-brand-subtle via-transparent to-transparent border border-brand/20 p-6 mb-4 page-enter overflow-hidden">
+            <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-brand/10 blur-2xl pointer-events-none" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1">
+                <h2 className="font-display text-lg font-bold text-foreground mb-1">Join the conversation</h2>
+                <p className="text-sm text-foreground-muted">Create an account to post, comment, like, and get notified when someone replies to you.</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link to="/register" className="btn-primary press-effect text-sm">Sign up free</Link>
+                <Link to="/login" className="btn-ghost press-effect text-sm">Log in</Link>
+              </div>
+            </div>
+            <button onClick={() => { sessionStorage.setItem("ngf_welcome_dismissed", "1"); setShowWelcome(false); }} className="absolute top-3 right-3 text-foreground-muted hover:text-foreground press-effect p-1.5 rounded-lg hover:bg-surface-raised transition-colors">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+        )}
+
+        {showLastRead && lastRead && user && (
+          <div className="flex items-center gap-3 bg-brand-subtle border border-brand/20 rounded-2xl px-5 py-3 mb-4 animate-[fadeInDown_0.3s_ease-out]">
+            <svg className="w-4 h-4 text-brand flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            <span className="text-sm text-foreground-muted flex-1 min-w-0">
+              Continue where you left off:{" "}
+              <Link to={`/posts/${lastRead.postId}`} className="font-semibold text-foreground hover:text-brand transition-colors truncate">
+                {lastRead.title}
+              </Link>
+            </span>
+            <span className="tag capitalize flex-shrink-0">{lastRead.category}</span>
+            <button onClick={() => { localStorage.removeItem("ngf_last_read"); setShowLastRead(false); }} className="text-foreground-muted hover:text-foreground transition-colors flex-shrink-0 press-effect p-1 rounded-lg hover:bg-surface-raised">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+        )}
+
         {/* ── Page Header ── */}
         <div className="rounded-2xl bg-gradient-to-br from-brand/5 to-transparent p-6 -mx-2"
-             style={{ animation: "fadeInUp 0.3s ease-out both" }}>
+          style={{ animation: "fadeInUp 0.3s ease-out both" }}>
           {searchQuery ? (
             <div>
               <div className="flex items-center gap-3">
@@ -387,21 +445,19 @@ export default function Home() {
                 {/* All tab */}
                 <button
                   onClick={() => handleCategoryClick("all")}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                    categoryFilter === "all"
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${categoryFilter === "all"
                       ? "bg-brand text-white shadow-md scale-105"
                       : "text-foreground-muted hover:bg-surface-hover hover:text-foreground"
-                  }`}
+                    }`}
                 >All</button>
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={(e) => handleCategoryClick(cat.id, e.currentTarget)}
-                    className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                      categoryFilter === cat.id
+                    className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${categoryFilter === cat.id
                         ? "bg-brand text-white shadow-md scale-105"
                         : "text-foreground-muted hover:bg-surface-hover hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     <CategoryIcon name={cat.icon} className="w-3.5 h-3.5" />
                     {cat.label}
@@ -455,9 +511,8 @@ export default function Home() {
                     <span className="text-xs font-semibold uppercase tracking-widest text-foreground-muted">Category:</span>
                     {categories.map(cat => (
                       <button key={cat.id} type="button" onClick={() => setNewCategory(cat.id)}
-                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                          newCategory === cat.id ? "bg-brand text-white shadow-sm" : "bg-surface-hover text-foreground-muted hover:text-foreground"
-                        }`}>
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${newCategory === cat.id ? "bg-brand text-white shadow-sm" : "bg-surface-hover text-foreground-muted hover:text-foreground"
+                          }`}>
                         <CategoryIcon name={cat.icon} className="w-3 h-3" />{cat.label}
                       </button>
                     ))}
@@ -511,6 +566,7 @@ export default function Home() {
                 // ─── Compact View ───
                 return (
                   <Link key={post.id} to={`/posts/${post.id}`} className="block group"
+                    onClick={() => localStorage.setItem("ngf_last_read", JSON.stringify({ postId: post.id, title: post.title, category: post.category, timestamp: Date.now() }))}
                     style={{ animation: `fadeInUp 0.3s ease-out ${index * 40}ms both` }}>
                     <div className={`flex items-center gap-3 card-surface hover-shadow-brand rounded-lg border border-border-subtle py-3 px-4 shadow-sm hover:shadow-lg transition-all duration-200 group-hover:-translate-y-0.5 border-l-4`}
                       style={{ borderLeftColor: `var(--tw-${catColor.replace("bg-", "")}, currentColor)` }}>
@@ -535,6 +591,7 @@ export default function Home() {
               // ─── List View ───
               return (
                 <Link key={post.id} to={`/posts/${post.id}`} className="block group"
+                  onClick={() => localStorage.setItem("ngf_last_read", JSON.stringify({ postId: post.id, title: post.title, category: post.category, timestamp: Date.now() }))}
                   style={{ animation: `fadeInUp 0.3s ease-out ${index * 40}ms both` }}>
                   <div className="relative overflow-hidden rounded-xl">
                     {/* Gradient top border on hover */}
@@ -564,6 +621,9 @@ export default function Home() {
                         </span>
                         <span className="text-xs text-foreground-muted">&middot;</span>
                         <span className="text-xs text-foreground-muted">{timeAgo(post.created_at)}</span>
+                        <span className="text-xs text-foreground-muted">
+                          &middot; {Math.max(1, Math.ceil(stripMarkdown(post.content).split(/\s+/).length / 200))} min read
+                        </span>
                         {post.is_edited && (
                           <span className="inline-flex items-center gap-1 text-xs text-foreground-muted">
                             <PencilIcon className="w-3 h-3" /> Edited
@@ -622,7 +682,7 @@ export default function Home() {
         {/* ── Community Stats Widget ── */}
         {forumStats && (
           <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 100ms both" }}>
+            style={{ animation: "fadeInUp 0.3s ease-out 100ms both" }}>
             <WidgetHeading>Community Stats</WidgetHeading>
             <div className="grid grid-cols-3 gap-3">
               <div className="border-t-2 border-brand pt-2">
@@ -644,14 +704,13 @@ export default function Home() {
         {/* ── Browse Categories Widget ── */}
         {categories.length > 0 && (
           <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 200ms both" }}>
+            style={{ animation: "fadeInUp 0.3s ease-out 200ms both" }}>
             <WidgetHeading>Browse Categories</WidgetHeading>
             <div className="space-y-0.5">
               {/* All Categories */}
               <button onClick={() => handleCategoryClick("all")}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${
-                  categoryFilter === "all" ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand -ml-px" : "text-foreground hover:bg-surface-hover"
-                }`}>
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${categoryFilter === "all" ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand -ml-px" : "text-foreground hover:bg-surface-hover"
+                  }`}>
                 <div className="w-3 h-3 rounded-sm bg-foreground-muted/30" />
                 <span className="capitalize font-medium flex-1 text-left">All Categories</span>
               </button>
@@ -659,9 +718,8 @@ export default function Home() {
                 const catBg = hashColor(cat.id);
                 return (
                   <button key={cat.id} onClick={() => handleCategoryClick(cat.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${
-                      categoryFilter === cat.id ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand -ml-px" : "text-foreground hover:bg-surface-hover"
-                    }`}>
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${categoryFilter === cat.id ? "bg-brand/10 text-brand font-semibold border-l-2 border-brand -ml-px" : "text-foreground hover:bg-surface-hover"
+                      }`}>
                     <div className={`w-6 h-6 rounded-md ${catBg} flex items-center justify-center`}>
                       <CategoryIcon name={cat.icon} className="w-3.5 h-3.5 text-white" />
                     </div>
@@ -677,7 +735,7 @@ export default function Home() {
         {/* ── Trending This Week Widget ── */}
         {(trendingLoading || trendingPosts.length >= 3) && (
           <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 300ms both" }}>
+            style={{ animation: "fadeInUp 0.3s ease-out 300ms both" }}>
             <WidgetHeading>
               <span className="inline-flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" {...svgBase}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
@@ -717,7 +775,7 @@ export default function Home() {
         {/* ── Recently Active Widget ── */}
         {activeUsers.length > 0 && (
           <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
-               style={{ animation: "fadeInUp 0.3s ease-out 400ms both" }}>
+            style={{ animation: "fadeInUp 0.3s ease-out 400ms both" }}>
             <WidgetHeading>
               <span className="inline-flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" {...svgBase}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
