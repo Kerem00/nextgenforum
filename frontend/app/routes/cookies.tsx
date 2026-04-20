@@ -246,11 +246,11 @@ export default function Cookies() {
 
       <Section number="5" title="Contact">
         <p>
-          Inquiries extensively concerning our precise storage mechanisms? Respectfully contact via{" "}
+          Inquiries extensively concerning our precise storage mechanisms? Respectfully{" "}
           <span className="text-brand font-bold bg-brand/10 px-2 py-0.5 rounded ml-1">
-            privacy@nextgenforum.com
+            contact an administrator
           </span>
-          .
+          {" "} directly on the platform.
         </p>
       </Section>
     </LegalPage>

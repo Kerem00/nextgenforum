@@ -246,12 +246,11 @@ export default function Terms() {
 
       <Section number="8" title="Contact">
         <p>
-          If you have questions about these Terms of Service, please
-          contact us at{" "}
+          If you have questions about these Terms of Service, please{" "}
           <span className="text-brand font-bold bg-brand/10 px-2 py-0.5 rounded ml-1">
-            legal@nextgenforum.com
+            contact an administrator
           </span>
-          .
+          {" "} directly on the platform.
         </p>
       </Section>
     </LegalPage>

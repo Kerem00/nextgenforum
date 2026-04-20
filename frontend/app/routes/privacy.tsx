@@ -250,11 +250,11 @@ export default function Privacy() {
           ))}
         </div>
         <p className="mt-5">
-          To exercise any of these fundamental rights, rapidly contact us at {" "}
+          To exercise any of these fundamental rights, please{" "}
           <span className="text-brand font-bold bg-brand/10 px-2 py-0.5 rounded ml-1">
-            privacy@nextgenforum.com
+            contact an administrator
           </span>
-          .
+          {" "} directly on the platform.
         </p>
       </Section>
 
