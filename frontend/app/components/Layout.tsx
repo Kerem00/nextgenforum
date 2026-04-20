@@ -267,9 +267,9 @@ export default function Layout() {
                         <div>
                             <h3 className="font-semibold text-foreground mb-3">Legal</h3>
                             <ul className="space-y-2 text-sm text-foreground-muted">
-                                <li><a href="#" className="hover:text-brand transition-colors">Terms of Service</a></li>
-                                <li><a href="#" className="hover:text-brand transition-colors">Privacy Policy</a></li>
-                                <li><a href="#" className="hover:text-brand transition-colors">Cookie Policy</a></li>
+                                <li><Link to="/terms" className="hover:text-brand transition-all duration-150 hover:translate-x-1 inline-block">Terms of Service</Link></li>
+                                <li><Link to="/privacy" className="hover:text-brand transition-all duration-150 hover:translate-x-1 inline-block">Privacy Policy</Link></li>
+                                <li><Link to="/cookies" className="hover:text-brand transition-all duration-150 hover:translate-x-1 inline-block">Cookie Policy</Link></li>
                             </ul>
                         </div>
                     </div>
