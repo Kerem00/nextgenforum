@@ -94,6 +94,7 @@ type ProfileMeta = {
     showWebsite: boolean;
     showTwitter: boolean;
     showGithub: boolean;
+    showActivity?: boolean;
   };
 };
 
@@ -152,6 +153,7 @@ export default function EditProfile() {
           showWebsite: true,
           showTwitter: true,
           showGithub: true,
+          showActivity: true,
         }),
         [field]: value,
       },
@@ -630,6 +632,7 @@ export default function EditProfile() {
                     { key: "showWebsite", label: "Show Website", icon: "🔗" },
                     { key: "showTwitter", label: "Show Twitter / X", icon: "X" },
                     { key: "showGithub", label: "Show GitHub", icon: "GH" },
+                    { key: "showActivity", label: "Show Activity", icon: "📈" },
                   ].map((pref) => (
                     <label 
                       key={pref.key}
