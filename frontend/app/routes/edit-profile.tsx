@@ -81,6 +81,32 @@ export function applyAccentColor(colorId: AccentColorId) {
   localStorage.setItem("ngf_accent_color", colorId);
 }
 
+// ── Persona 5 theme: full override of all CSS variables
+export function applyPersona5Theme() {
+  const root = document.documentElement;
+  root.classList.add("persona5");
+  root.classList.remove("dark", "light");
+  root.style.removeProperty("--theme-brand");
+  root.style.removeProperty("--theme-brand-hover");
+  root.style.removeProperty("--theme-brand-glow");
+  root.style.removeProperty("--theme-brand-subtle");
+  root.style.removeProperty("--theme-brand-muted");
+  localStorage.setItem("ngf_special_theme", "persona5");
+}
+
+export function removePersona5Theme() {
+  const root = document.documentElement;
+  root.classList.remove("persona5");
+  localStorage.removeItem("ngf_special_theme");
+  // Re-apply saved accent if any
+  const savedAccent = localStorage.getItem("ngf_accent_color");
+  if (savedAccent) applyAccentColor(savedAccent as AccentColorId);
+  // Re-apply saved base theme
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "dark") root.classList.add("dark");
+  else if (savedTheme === "light") root.classList.add("light");
+}
+
 type Tab = "profile" | "privacy" | "account" | "appearance";
 
 type ProfileMeta = {
@@ -190,6 +216,22 @@ export default function EditProfile() {
     setHasChanges(true);
   };
 
+  // ── Persona 5 theme state
+  const [p5Active, setP5Active] = useState<boolean>(() => {
+    return localStorage.getItem("ngf_special_theme") === "persona5";
+  });
+
+  const toggleP5Theme = () => {
+    if (p5Active) {
+      removePersona5Theme();
+      setP5Active(false);
+    } else {
+      applyPersona5Theme();
+      setP5Active(true);
+    }
+    setHasChanges(true);
+  };
+
   // ── Delete account modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -210,6 +252,11 @@ export default function EditProfile() {
   const applyTheme = (t: "light" | "dark" | "system") => {
     setThemePreference(t);
     setHasChanges(true);
+    // Exit Persona 5 mode if user picks a regular theme
+    if (p5Active) {
+      removePersona5Theme();
+      setP5Active(false);
+    }
     if (t === "dark") {
       document.documentElement.classList.add("dark");
       document.documentElement.classList.remove("light");
@@ -823,6 +870,94 @@ export default function EditProfile() {
           ════════════════════════════════════ */}
           {activeTab === "appearance" && (
             <div className="space-y-6 animate-[fadeInUp_0.2s_ease-out]">
+
+              {/* ── Persona 5 Theme Card */}
+              <div
+                className="relative rounded-2xl border-2 p-6 overflow-hidden transition-all duration-300"
+                style={{
+                  borderColor: p5Active ? "#e4002b" : "var(--theme-border-subtle)",
+                  background: p5Active
+                    ? "linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%)"
+                    : "var(--theme-surface)",
+                }}
+              >
+                {/* P5 diagonal stripe decoration */}
+                {p5Active && (
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-[0.04]"
+                    style={{
+                      backgroundImage: "repeating-linear-gradient(45deg, #e4002b 0px, #e4002b 2px, transparent 2px, transparent 12px)",
+                    }}
+                  />
+                )}
+
+                <div className="relative z-10 flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <h2
+                      className="font-display font-bold text-lg flex items-center gap-3 mb-1"
+                      style={{ color: p5Active ? "#ffffff" : "var(--theme-foreground)" }}
+                    >
+                      {/* Phantom Thief mask icon */}
+                      <span
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg font-black text-sm transition-colors"
+                        style={{
+                          background: p5Active ? "#e4002b" : "var(--theme-brand)",
+                          color: "#ffffff",
+                        }}
+                      >
+                        P5
+                      </span>
+                      Persona 5 Theme
+                      {p5Active && (
+                        <span
+                          className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded"
+                          style={{ background: "#e4002b", color: "#ffffff" }}
+                        >
+                          Active
+                        </span>
+                      )}
+                    </h2>
+                    <p
+                      className="text-sm"
+                      style={{ color: p5Active ? "#a0a0a0" : "var(--theme-foreground-muted)" }}
+                    >
+                      Awaken to your true self. Full black &amp; red Phantom Thief aesthetic
+                      — replaces all colors, surfaces, and backgrounds.
+                    </p>
+
+                    {/* P5 color preview swatches */}
+                    <div className="flex items-center gap-2 mt-3">
+                      {[
+                        { bg: "#0a0a0a", label: "Background" },
+                        { bg: "#1a1a1a", label: "Surface" },
+                        { bg: "#e4002b", label: "Brand Red" },
+                        { bg: "#f5d000", label: "Gold" },
+                        { bg: "#ffffff", label: "Text" },
+                      ].map(s => (
+                        <div
+                          key={s.label}
+                          title={s.label}
+                          className="w-5 h-5 rounded-md ring-1 ring-white/10 shadow"
+                          style={{ backgroundColor: s.bg }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Toggle button */}
+                  <button
+                    onClick={toggleP5Theme}
+                    className="flex-shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-all duration-200 press-effect cursor-pointer"
+                    style={
+                      p5Active
+                        ? { background: "#1a1a1a", color: "#e4002b", border: "1.5px solid #e4002b" }
+                        : { background: "var(--theme-brand)", color: "#ffffff" }
+                    }
+                  >
+                    {p5Active ? "Deactivate" : "Activate"}
+                  </button>
+                </div>
+              </div>
 
               {/* ── F1-E: Accent Color card — above Theme card */}
               <div className="bg-surface rounded-2xl border border-border-subtle p-6 space-y-5">

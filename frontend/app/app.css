@@ -98,6 +98,32 @@
     --theme-border-strong: #4b5563;
     /* Gray 600 */
   }
+
+  /* ════════════════════════════════════
+     PERSONA 5 THEME — Phantom Thief
+  ════════════════════════════════════ */
+  :root.persona5 {
+    --theme-brand:          #e4002b;   /* P5 signature red */
+    --theme-brand-hover:    #b5001f;   /* deeper red */
+    --theme-brand-glow:     rgba(228, 0, 43, 0.30);
+    --theme-brand-subtle:   rgba(228, 0, 43, 0.10);
+    --theme-brand-muted:    #ff6b6b;
+
+    --theme-surface:        #1a1a1a;   /* near-black card */
+    --theme-surface-hover:  #242424;
+    --theme-surface-raised: #111111;
+
+    --theme-background:     #0a0a0a;   /* true black bg */
+
+    --theme-foreground:       #ffffff;
+    --theme-foreground-muted: #a0a0a0;
+
+    --theme-border-subtle:  #2a2a2a;
+    --theme-border-strong:  #e4002b;   /* red borders on hover */
+
+    /* P5 accent gold for special highlights */
+    --p5-gold: #f5d000;
+  }
 }
 
 html,

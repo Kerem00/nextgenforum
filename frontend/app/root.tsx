@@ -55,14 +55,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  // F1-C: Restore saved accent color on every page load
+  // Restore saved accent color and special theme on every page load
   useEffect(() => {
-    const savedAccent = localStorage.getItem("ngf_accent_color");
-    if (savedAccent) {
-      import("./routes/edit-profile").then(m => {
+    import("./routes/edit-profile").then(m => {
+      // Check for special theme first (e.g. Persona 5)
+      const specialTheme = localStorage.getItem("ngf_special_theme");
+      if (specialTheme === "persona5") {
+        m.applyPersona5Theme();
+        return; // P5 overrides accent
+      }
+      // Otherwise restore accent color
+      const savedAccent = localStorage.getItem("ngf_accent_color");
+      if (savedAccent) {
         m.applyAccentColor(savedAccent as any);
-      });
-    }
+      }
+    });
   }, []);
 
   return <Outlet />;
