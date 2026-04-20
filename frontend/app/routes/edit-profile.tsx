@@ -5,6 +5,82 @@ import { useToast } from "../context/ToastContext";
 import { usersClient, postsClient } from "../api";
 import { hashColor } from "../utils/hashColor";
 
+// ── F1-A: Accent color palette
+export const ACCENT_COLORS = [
+  {
+    id: "violet",
+    label: "Violet",
+    light: { brand: "#7c3aed", hover: "#6d28d9", glow: "rgba(124,58,237,0.18)", subtle: "rgba(124,58,237,0.08)", muted: "#c4b5fd" },
+    dark:  { brand: "#a78bfa", hover: "#8b5cf6", glow: "rgba(167,139,250,0.22)", subtle: "rgba(167,139,250,0.10)", muted: "#6d28d9" },
+  },
+  {
+    id: "blue",
+    label: "Blue",
+    light: { brand: "#2563eb", hover: "#1d4ed8", glow: "rgba(37,99,235,0.18)", subtle: "rgba(37,99,235,0.08)", muted: "#93c5fd" },
+    dark:  { brand: "#60a5fa", hover: "#3b82f6", glow: "rgba(96,165,250,0.22)", subtle: "rgba(96,165,250,0.10)", muted: "#1d4ed8" },
+  },
+  {
+    id: "emerald",
+    label: "Emerald",
+    light: { brand: "#059669", hover: "#047857", glow: "rgba(5,150,105,0.18)", subtle: "rgba(5,150,105,0.08)", muted: "#6ee7b7" },
+    dark:  { brand: "#34d399", hover: "#10b981", glow: "rgba(52,211,153,0.22)", subtle: "rgba(52,211,153,0.10)", muted: "#047857" },
+  },
+  {
+    id: "rose",
+    label: "Rose",
+    light: { brand: "#e11d48", hover: "#be123c", glow: "rgba(225,29,72,0.18)", subtle: "rgba(225,29,72,0.08)", muted: "#fda4af" },
+    dark:  { brand: "#fb7185", hover: "#f43f5e", glow: "rgba(251,113,133,0.22)", subtle: "rgba(251,113,133,0.10)", muted: "#be123c" },
+  },
+  {
+    id: "amber",
+    label: "Amber",
+    light: { brand: "#d97706", hover: "#b45309", glow: "rgba(217,119,6,0.18)", subtle: "rgba(217,119,6,0.08)", muted: "#fcd34d" },
+    dark:  { brand: "#fbbf24", hover: "#f59e0b", glow: "rgba(251,191,36,0.22)", subtle: "rgba(251,191,36,0.10)", muted: "#b45309" },
+  },
+  {
+    id: "cyan",
+    label: "Cyan",
+    light: { brand: "#0891b2", hover: "#0e7490", glow: "rgba(8,145,178,0.18)", subtle: "rgba(8,145,178,0.08)", muted: "#67e8f9" },
+    dark:  { brand: "#22d3ee", hover: "#06b6d4", glow: "rgba(34,211,238,0.22)", subtle: "rgba(34,211,238,0.10)", muted: "#0e7490" },
+  },
+  {
+    id: "pink",
+    label: "Pink",
+    light: { brand: "#db2777", hover: "#be185d", glow: "rgba(219,39,119,0.18)", subtle: "rgba(219,39,119,0.08)", muted: "#f9a8d4" },
+    dark:  { brand: "#f472b6", hover: "#ec4899", glow: "rgba(244,114,182,0.22)", subtle: "rgba(244,114,182,0.10)", muted: "#be185d" },
+  },
+  {
+    id: "orange",
+    label: "Orange",
+    light: { brand: "#ea580c", hover: "#c2410c", glow: "rgba(234,88,12,0.18)", subtle: "rgba(234,88,12,0.08)", muted: "#fdba74" },
+    dark:  { brand: "#fb923c", hover: "#f97316", glow: "rgba(251,146,60,0.22)", subtle: "rgba(251,146,60,0.10)", muted: "#c2410c" },
+  },
+] as const;
+
+export type AccentColorId = typeof ACCENT_COLORS[number]["id"];
+
+// ── F1-B: Apply accent color to CSS variables
+export function applyAccentColor(colorId: AccentColorId) {
+  const color = ACCENT_COLORS.find(c => c.id === colorId);
+  if (!color) return;
+
+  const isDark =
+    document.documentElement.classList.contains("dark") ||
+    (!document.documentElement.classList.contains("light") &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  const values = isDark ? color.dark : color.light;
+  const root = document.documentElement;
+
+  root.style.setProperty("--theme-brand",        values.brand);
+  root.style.setProperty("--theme-brand-hover",  values.hover);
+  root.style.setProperty("--theme-brand-glow",   values.glow);
+  root.style.setProperty("--theme-brand-subtle", values.subtle);
+  root.style.setProperty("--theme-brand-muted",  values.muted);
+
+  localStorage.setItem("ngf_accent_color", colorId);
+}
+
 type Tab = "profile" | "privacy" | "account" | "appearance";
 
 type ProfileMeta = {
@@ -102,6 +178,17 @@ export default function EditProfile() {
   const [feedView, setFeedView] = useState<"list" | "compact">(() => {
     return (localStorage.getItem("feed_view_preference") as any) || "list";
   });
+
+  // ── F1-D: Accent color state
+  const [accentColor, setAccentColor] = useState<AccentColorId>(() => {
+    return (localStorage.getItem("ngf_accent_color") as AccentColorId) || "violet";
+  });
+
+  const handleAccentChange = (colorId: AccentColorId) => {
+    setAccentColor(colorId);
+    applyAccentColor(colorId);
+    setHasChanges(true);
+  };
 
   // ── Delete account modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -736,6 +823,88 @@ export default function EditProfile() {
           ════════════════════════════════════ */}
           {activeTab === "appearance" && (
             <div className="space-y-6 animate-[fadeInUp_0.2s_ease-out]">
+
+              {/* ── F1-E: Accent Color card — above Theme card */}
+              <div className="bg-surface rounded-2xl border border-border-subtle p-6 space-y-5">
+                <div>
+                  <h2 className="font-display font-bold text-foreground flex items-center gap-2">
+                    <span className="w-1 h-4 rounded-full bg-brand inline-block" />
+                    Accent Color
+                  </h2>
+                  <p className="text-sm text-foreground-muted mt-1">
+                    Personalizes buttons, links, highlights, and interactive elements
+                    across the entire forum.
+                  </p>
+                </div>
+
+                {/* Color grid */}
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                  {ACCENT_COLORS.map(color => (
+                    <button
+                      key={color.id}
+                      onClick={() => handleAccentChange(color.id)}
+                      title={color.label}
+                      className={`
+                        relative flex flex-col items-center gap-2 p-2 rounded-2xl
+                        border-2 transition-all duration-200 press-effect cursor-pointer
+                        ${
+                          accentColor === color.id
+                            ? "border-current scale-105"
+                            : "border-transparent hover:border-border-strong hover:scale-105"
+                        }
+                      `}
+                      style={{ color: color.light.brand }}
+                    >
+                      {/* Color swatch */}
+                      <div
+                        className="w-10 h-10 rounded-xl shadow-md transition-all duration-200"
+                        style={{
+                          background: `linear-gradient(135deg, ${color.light.brand}, ${color.dark.brand})`,
+                          boxShadow: accentColor === color.id
+                            ? `0 4px 16px -4px ${color.light.glow}`
+                            : undefined,
+                        }}
+                      />
+                      {/* Label */}
+                      <span className="text-[10px] font-semibold font-display text-foreground-muted">
+                        {color.label}
+                      </span>
+                      {/* Active checkmark */}
+                      {accentColor === color.id && (
+                        <div
+                          className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: color.light.brand }}
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
+                               stroke="white" strokeWidth="3.5"
+                               strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Live preview strip */}
+                <div className="rounded-xl border border-border-subtle p-4 space-y-3 bg-background">
+                  <p className="text-xs font-bold uppercase tracking-widest text-foreground-muted font-display">
+                    Preview
+                  </p>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button className="btn-primary text-sm press-effect py-2 px-4">
+                      Primary button
+                    </button>
+                    <button className="btn-ghost text-sm press-effect py-2 px-4">
+                      Ghost button
+                    </button>
+                    <span className="tag">Category tag</span>
+                    <span className="text-brand text-sm font-semibold underline underline-offset-2 cursor-pointer">
+                      Link text
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Theme */}
               <div className="bg-surface rounded-2xl border border-border-subtle p-6 space-y-4">

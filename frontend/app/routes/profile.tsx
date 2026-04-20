@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router";
 import { postsClient, usersClient } from "../api";
 import { useAuth } from "../context/AuthContext";
 import { Card } from "../components/ui/Card";
+import { ACCENT_COLORS } from "./edit-profile";
 
 type Post = {
     id: number;
@@ -98,6 +99,12 @@ export default function Profile() {
 
     const isCurrentUser = currentUser?.id === Number(userId);
 
+    // F1-F: Show accent dot for current user
+    const accentId = isCurrentUser
+        ? (localStorage.getItem("ngf_accent_color") || "violet")
+        : null;
+    const accentColor = accentId ? ACCENT_COLORS.find(c => c.id === accentId) : null;
+
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             {/* Header Section */}
@@ -109,7 +116,18 @@ export default function Profile() {
                         {profileData.username?.charAt(0).toUpperCase()}
                     </div>
 
-                    <h1 className="text-3xl font-extrabold text-foreground">{profileData.username}</h1>
+                    <h1 className="text-3xl font-extrabold text-foreground flex items-center">
+                        {profileData.username}
+                        {accentColor && (
+                            <span
+                                className="inline-block w-3 h-3 rounded-full ml-2 mb-0.5 align-middle ring-2 ring-surface"
+                                style={{
+                                    background: `linear-gradient(135deg, ${accentColor.light.brand}, ${accentColor.dark.brand})`,
+                                }}
+                                title={`${accentColor.label} accent`}
+                            />
+                        )}
+                    </h1>
                     {joinedDate && <p className="text-foreground-muted text-sm mt-1 mb-2 font-medium">{joinedDate}</p>}
 
                     {profileMeta.bio && (

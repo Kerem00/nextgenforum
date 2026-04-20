@@ -36,6 +36,7 @@ export default function Layout() {
     }, []);
 
     const toggleTheme = () => {
+        const savedAccent = localStorage.getItem("ngf_accent_color");
         if (isDark) {
             document.documentElement.classList.remove("dark");
             document.documentElement.classList.add("light");
@@ -46,6 +47,12 @@ export default function Layout() {
             document.documentElement.classList.add("dark");
             localStorage.setItem("theme", "dark");
             setIsDark(true);
+        }
+        // Re-apply accent color so the correct light/dark variant is used
+        if (savedAccent) {
+            import("../routes/edit-profile").then(m => {
+                m.applyAccentColor(savedAccent as any);
+            });
         }
     };
 

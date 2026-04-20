@@ -6,6 +6,7 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { useEffect } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -54,6 +55,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // F1-C: Restore saved accent color on every page load
+  useEffect(() => {
+    const savedAccent = localStorage.getItem("ngf_accent_color");
+    if (savedAccent) {
+      import("./routes/edit-profile").then(m => {
+        m.applyAccentColor(savedAccent as any);
+      });
+    }
+  }, []);
+
   return <Outlet />;
 }
 
