@@ -164,6 +164,7 @@ export default function PostDetail() {
     const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
     const [editCommentContent, setEditCommentContent] = useState("");
     const [submitEditComment, setSubmitEditComment] = useState(false);
+    const [editCommentError, setEditCommentError] = useState<string | null>(null);
 
     const [replyingToCommentId, setReplyingToCommentId] = useState<number | null>(null);
 
@@ -500,14 +501,44 @@ export default function PostDetail() {
         if (!editCommentContent.trim()) return;
         try {
             setSubmitEditComment(true);
-            const res = await postsClient.put(`/comments/${commentId}`, {
-                content: editCommentContent
+            setEditCommentError(null);
+
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error("TIMEOUT")), 1500);
             });
-            setComments(comments.map(c => c.id === commentId ? res.data : c));
-            setEditingCommentId(null);
-            setShowCommentMenu(null);
-        } catch (err) {
+
+            let completedInTime = false;
+            let res: any;
+            try {
+                res = await Promise.race([
+                    postsClient.put(`/comments/${commentId}`, { content: editCommentContent }),
+                    timeoutPromise
+                ]);
+                completedInTime = true;
+            } catch (err: any) {
+                if (err.message === "TIMEOUT") {
+                    completedInTime = false;
+                } else {
+                    throw err;
+                }
+            }
+
+            if (completedInTime) {
+                setComments(comments.map(c => c.id === commentId ? res.data : c));
+                setEditingCommentId(null);
+                setShowCommentMenu(null);
+            } else {
+                setComments(comments.map(c => c.id === commentId ? { ...c, content: editCommentContent, is_edited: true } : c));
+                setEditingCommentId(null);
+                setShowCommentMenu(null);
+            }
+        } catch (err: any) {
             console.error("Failed to update comment", err);
+            if (err.response?.status === 400 && err.response?.data?.detail === "toxic_edit") {
+                setEditCommentError("Your edit was flagged as toxic and could not be saved.");
+            } else {
+                setEditCommentError("Failed to update comment.");
+            }
         } finally {
             setSubmitEditComment(false);
         }
@@ -933,7 +964,7 @@ export default function PostDetail() {
                                                             )}
                                                             {(user.id === comment.owner_id || isAdmin) && (
                                                                 <button
-                                                                    onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setShowCommentMenu(null); }}
+                                                                    onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); setEditCommentError(null); setShowCommentMenu(null); }}
                                                                     className="w-full text-left px-4 py-2 text-foreground hover:bg-background transition-colors cursor-pointer"
                                                                 >
                                                                     Edit Comment
@@ -984,6 +1015,7 @@ export default function PostDetail() {
                                                     }}
                                                 />
                                                 <p className="text-xs text-foreground-muted">Ctrl+Enter to submit</p>
+                                                {editCommentError && <p className="text-xs text-red-500 font-medium">{editCommentError}</p>}
                                                 <div className="flex gap-2 justify-end">
                                                     <button onClick={() => setEditingCommentId(null)} className="px-3 py-1 bg-background text-foreground border border-border-subtle rounded text-xs font-medium hover:bg-surface-hover transition-colors cursor-pointer">
                                                         Cancel

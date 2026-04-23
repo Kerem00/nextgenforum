@@ -7,7 +7,7 @@ from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
 from . import models, schemas, database, consumer, auth
-from .comment_mod import comment_mod
+from .ml_mod import ml_mod
 from .config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -111,7 +111,7 @@ async def run_ai_assist(post_id: int):
 async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content: str):
     if entity_type == "comment":
         # Run ML-based moderation for comments
-        is_toxic, confidence = comment_mod(content)
+        is_toxic, confidence = ml_mod(content)
 
         if confidence >= CONFIDENCE_THRESHOLD:
             if is_toxic:
@@ -394,6 +394,11 @@ async def update_comment(
         raise HTTPException(status_code=404, detail="Comment not found")
     if comment.owner_id != current_user.user_id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized to edit this comment")
+
+    # Run ML-based moderation check on edit
+    is_toxic, confidence = ml_mod(comment_update.content)
+    if is_toxic and confidence >= CONFIDENCE_THRESHOLD:
+        raise HTTPException(status_code=400, detail="toxic_edit")
 
     comment.content = comment_update.content
     comment.is_edited = True
