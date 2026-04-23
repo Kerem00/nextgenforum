@@ -2,7 +2,7 @@ import re
 import emoji
 
 
-def sanitize_text(text: str, model_type: str) -> str:
+def ml_preprocess(text: str, model_type: str) -> str:
     """
     Sanitize input text before feeding it to an ML model.
 
@@ -17,6 +17,9 @@ def sanitize_text(text: str, model_type: str) -> str:
     if text is None or (isinstance(text, float)):
         return ""
     text = str(text)
+
+    # Format newlines to spaces
+    text = text.replace('\n', ' ')
 
     # STEP 1: All models — strip HTML, normalise whitespace, replace URLs & emails
     text = re.sub(r'<[^<]+?>', ' ', text)
