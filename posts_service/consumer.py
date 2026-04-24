@@ -3,7 +3,7 @@ import asyncio
 import json
 from sqlalchemy.future import select
 from sqlalchemy.dialects.postgresql import insert
-from . import database, models
+import database, models
 
 import os
 

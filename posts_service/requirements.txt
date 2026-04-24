@@ -9,6 +9,5 @@ pyjwt
 emoji
 joblib
 scikit-learn
-fasttext
 pandas
 httpx

@@ -2,7 +2,7 @@ import enum
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, Enum as SQLEnum, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from .database import Base
+from database import Base
 
 class ContentStatus(str, enum.Enum):
     active = "active"

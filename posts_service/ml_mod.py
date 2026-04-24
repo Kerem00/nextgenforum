@@ -1,7 +1,7 @@
 import os
 import joblib
-from .config import ACTIVE_MODEL, LR_MODEL_PATH, FASTTEXT_MODEL_PATH
-from .sanitizer import ml_preprocess
+from config import ACTIVE_MODEL, LR_MODEL_PATH, FASTTEXT_MODEL_PATH
+from sanitizer import ml_preprocess
 _lr_pipeline = None
 _ft_model = None
 

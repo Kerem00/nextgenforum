@@ -21,5 +21,5 @@ LR_MODEL_PATH = os.path.join(_BASE_DIR, "ml_models", "lr_pipeline.joblib")
 FASTTEXT_MODEL_PATH = os.path.join(_BASE_DIR, "ml_models", "ft_model.bin")
 
 # ── AI Assist (Ollama) ───────────────────────────────────────────────────────
-OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434/api/generate")
 OLLAMA_MODEL = "gemma3:12b"

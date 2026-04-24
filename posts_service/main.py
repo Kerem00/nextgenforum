@@ -6,9 +6,9 @@ import asyncio
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
-from . import models, schemas, database, consumer, auth
-from .ml_mod import ml_mod
-from .config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL
+import models, schemas, database, consumer, auth
+from ml_mod import ml_mod
+from config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -171,7 +171,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["https://nextgenforum.tech", "http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
