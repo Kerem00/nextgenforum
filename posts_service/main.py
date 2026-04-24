@@ -58,7 +58,7 @@ Your task is to analyze user-submitted forum posts and return structured data to
 1. TOXICITY ANALYSIS: Evaluate the content for toxicity. Set 'is_toxic' to true ONLY if the content contains explicit hate speech, targeted harassment, severe profanity, spam, or illegal material. Strong dissenting opinions or mild frustration are NOT toxic. If flagged as toxic, provide a brief 1-sentence explanation in 'toxicity_reason'.
 2. TITLE SUGGESTIONS: Generate exactly 3 relevant, engaging, and clear titles for the post. Avoid clickbait. Keep each title under 60 characters.
 3. CATEGORY ASSIGNMENT: Assign the single most appropriate category from this exact list: {allowed_categories}. Do not invent new categories.
-4. LANGUAGE DETECTION: Detect the language of the content and return a title suggestion in that language.
+4. LANGUAGE DETECTION: If the content is not in English, return the title suggestions in that language.
 
 ### OUTPUT SCHEMA:
 You must respond strictly with raw, valid JSON. Do NOT wrap the response in markdown code blocks (e.g., do not use ```json). Do not include any conversational filler. 
