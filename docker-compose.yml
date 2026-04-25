@@ -8,6 +8,11 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   users_db:
     image: postgres:15
@@ -20,6 +25,11 @@ services:
       - "5432:5432"
     volumes:
       - users_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   posts_db:
     image: postgres:15
@@ -32,6 +42,11 @@ services:
       - "5433:5432"
     volumes:
       - posts_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d posts_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   posts_service:
     build:
@@ -42,11 +57,12 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@posts_db:5432/posts_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    restart: on-failure
     depends_on:
       posts_db:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
 
   users_service:
     build:
@@ -57,11 +73,12 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@users_db:5432/users_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    restart: on-failure
     depends_on:
       users_db:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       posts_service:
         condition: service_started
 
@@ -71,6 +88,7 @@ services:
     container_name: frontend
     ports:
       - "3000:3000"
+    restart: on-failure
     depends_on:
       users_service:
         condition: service_started
