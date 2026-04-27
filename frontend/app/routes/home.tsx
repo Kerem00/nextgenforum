@@ -302,15 +302,9 @@ export default function Home() {
   const fetchConfig = async () => {
     if (configCache) { setCategories(configCache); setNewCategory(configCache[0]?.id || "general"); return; }
     try {
-      const response = await fetch("/forum-config.json");
-      const config = await response.json();
-      if (config.categories && config.categories.length > 0) {
-        let cats: CategoryConfig[];
-        if (typeof config.categories[0] === "string") {
-          cats = (config.categories as string[]).map((s: string) => ({ id: s, label: s, icon: "message-square", description: "" }));
-        } else {
-          cats = config.categories as CategoryConfig[];
-        }
+      const response = await postsClient.get("/categories");
+      const cats = response.data as CategoryConfig[];
+      if (cats && cats.length > 0) {
         configCache = cats;
         setCategories(cats);
         setNewCategory(cats[0]?.id || "general");

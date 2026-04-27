@@ -235,7 +235,7 @@ export default function Admin() {
                 await postsClient.delete(`/comments/${entityId}`);
             }
             try {
-                await postsClient.post(`/admin/reports/${reportId}/resolve`);
+                await postsClient.post(`/admin/reports/${reportId}/resolve?quiet=true`);
             } catch (err: any) {
                 if (err.response?.status !== 404) console.error("Report resolve threw an error", err);
             }
@@ -279,11 +279,11 @@ export default function Admin() {
         { key: "moderation" as const, label: "Reports", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
         )},
-        { key: "automod" as const, label: "AutoMod", icon: (
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>            
-        )},
         { key: "approval_queue" as const, label: "Approval Queue", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        )},
+        { key: "automod" as const, label: "AutoMod", icon: (
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>            
         )},
         { key: "logs" as const, label: "Logs", icon: (
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -680,8 +680,8 @@ export default function Admin() {
                                 </thead>
                                 <tbody>
                                     {filteredLogs.map((l, i) => {
-                                        const actionLabel = l.action_type === 'ban' ? 'Removed' : l.action_type === 'resolve_report' ? 'Approved' : l.action_type.replace(/_/g, ' ');
-                                        const typeLabel = logTab === "Moderation" ? "Report" : (l.entity_type || 'System');
+                                        const actionLabel = l.action_type === 'ban' ? 'Removed' : l.action_type === 'resolve_report' ? 'Report Dismissed' : l.action_type.replace(/_/g, ' ');
+                                        const typeLabel = logTab === "Moderation" ? (l.action_type === 'approve_post' || l.action_type === 'deny_post' ? 'Approval Queue' : 'Report') : (l.entity_type || 'System');
 
                                         return (
                                             <tr 

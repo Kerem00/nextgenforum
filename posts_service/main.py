@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
 from . import models, schemas, database, consumer, auth
 from .ml_mod import ml_mod
-from .config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL
+from .config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL, CATEGORIES
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -49,7 +49,8 @@ import json
 import httpx
 
 async def run_ollama_assist(content: str):
-    allowed_categories = "['General', 'Video Games', 'Cooking', 'Technology', 'Sports', 'Science', 'Off Topic']"
+    allowed_categories_list = [c["label"] for c in CATEGORIES]
+    allowed_categories = str(allowed_categories_list)
 
     prompt = f"""You are an expert AI forum moderator and content analyst.
 Your task is to analyze user-submitted forum posts and return structured data to our backend system.
@@ -176,6 +177,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/categories")
+async def get_categories():
+    return CATEGORIES
 
 @app.post("/posts", response_model=schemas.Post)
 async def create_post(
@@ -648,6 +653,7 @@ async def get_reports(
 async def resolve_report(
     report_id: int,
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    quiet: bool = False,
     db: AsyncSession = Depends(database.get_db)
 ):
     result = await db.execute(select(models.Report).where(models.Report.id == report_id))
@@ -656,15 +662,16 @@ async def resolve_report(
         raise HTTPException(status_code=404, detail="Report not found")
     
     report.status = "resolved"
-    log = models.AdminLog(
-        action_type="resolve_report",
-        entity_type=report.entity_type,
-        entity_id=report.entity_id,
-        moderator_id=current_user.user_id,
-        category="Moderation",
-        details=f"Report {report_id} resolved by admin {current_user.username}"
-    )
-    db.add(log)
+    if not quiet:
+        log = models.AdminLog(
+            action_type="resolve_report",
+            entity_type=report.entity_type,
+            entity_id=report.entity_id,
+            moderator_id=current_user.user_id,
+            category="Moderation",
+            details=f"Report {report_id} resolved by admin {current_user.username}"
+        )
+        db.add(log)
     await db.commit()
     await db.refresh(report)
     return report
