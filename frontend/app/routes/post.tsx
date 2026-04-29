@@ -912,9 +912,15 @@ export default function PostDetail() {
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start mb-1">
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                <Link to={`/users/${comment.owner_id}`} className="font-medium text-foreground text-sm hover:text-brand transition-colors">
-                                                    {comment.owner.username}
-                                                </Link>
+                                                {comment.owner.role === 'automod' ? (
+                                                    <span className="font-medium text-green-500 dark:text-green-400 text-sm">
+                                                        {comment.owner.username}
+                                                    </span>
+                                                ) : (
+                                                    <Link to={`/users/${comment.owner_id}`} className="font-medium text-foreground text-sm hover:text-brand transition-colors">
+                                                        {comment.owner.username}
+                                                    </Link>
+                                                )}
                                                 <span className="text-xs text-foreground-muted">{timeAgo(comment.created_at)}</span>
                                                 {comment.is_pinned && <span className="text-xs font-semibold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded border border-green-500/20">Pinned comment</span>}
                                                 {comment.is_edited && <span className="text-xs text-foreground-muted italic">Edited</span>}

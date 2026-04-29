@@ -95,6 +95,52 @@ export default function Admin() {
     const [editingPendingPost, setEditingPendingPost] = useState<Post | null>(null);
     const [pendingEditForm, setPendingEditForm] = useState({ title: '', category: '', content: '' });
 
+    // AutoMod state
+    const [autoModConfig, setAutoModConfig] = useState<any>(null);
+    const [autoModConfigLoading, setAutoModConfigLoading] = useState(true);
+    const [editingPrompt, setEditingPrompt] = useState("");
+    const [autoComments, setAutoComments] = useState<any>({});
+    const [selectedCategoryContext, setSelectedCategoryContext] = useState<string>("default");
+    const [isSavingAutoMod, setIsSavingAutoMod] = useState(false);
+    const [categories, setCategories] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (categories.length === 0) {
+            postsClient.get("/categories").then(res => setCategories(res.data)).catch(console.error);
+        }
+    }, [categories]);
+
+    useEffect(() => {
+        if (activePage === "automod" && !autoModConfig) {
+            setAutoModConfigLoading(true);
+            postsClient.get("/admin/automod/config")
+                .then(res => {
+                    setAutoModConfig(res.data);
+                    setEditingPrompt(res.data.llm_prompt);
+                    setAutoComments(res.data.auto_comments || {});
+                })
+                .catch(err => console.error("Failed to fetch automod config", err))
+                .finally(() => setAutoModConfigLoading(false));
+        }
+    }, [activePage, autoModConfig]);
+
+    const handleSaveAutoMod = async () => {
+        setIsSavingAutoMod(true);
+        try {
+            const res = await postsClient.put("/admin/automod/config", {
+                llm_prompt: editingPrompt,
+                auto_comments: autoComments
+            });
+            setAutoModConfig(res.data);
+            alert("AutoMod configuration saved successfully.");
+        } catch (err) {
+            console.error("Failed to save automod config", err);
+            alert("Failed to save AutoMod config.");
+        } finally {
+            setIsSavingAutoMod(false);
+        }
+    };
+
     useEffect(() => {
         if (user && !isAdmin(user)) {
             navigate("/");
@@ -634,10 +680,105 @@ export default function Admin() {
                             <h2 className="text-2xl font-bold text-foreground">Automated Moderator</h2>
                             <p className="text-sm text-foreground-muted mt-1">Configure AI moderation rules</p>
                         </div>
-                        <Card padding="py-12" className="flex flex-col items-center justify-center text-center text-foreground-muted">
-                            <svg className="w-12 h-12 mb-4 text-border-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                            <p className="text-sm font-medium">AutoMod configuration is coming soon</p>
-                        </Card>
+                        {autoModConfigLoading ? (
+                            <Card padding="p-6" className="animate-pulse">
+                                <div className="h-4 w-32 bg-border-subtle rounded mb-4"></div>
+                                <div className="h-64 w-full bg-border-subtle rounded"></div>
+                            </Card>
+                        ) : (
+                            <div className="space-y-6">
+                                <Card padding="p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-4">Zero-Shot System Prompt</h3>
+                                    <p className="text-sm text-foreground-muted mb-4">Use <code className="bg-surface-hover px-1 rounded text-brand">[ALLOWED_CATEGORIES]</code> and <code className="bg-surface-hover px-1 rounded text-brand">[CONTENT]</code> as tags to interpolate the real data into the prompt securely.</p>
+                                    <textarea
+                                        rows={12}
+                                        value={editingPrompt}
+                                        onChange={(e) => setEditingPrompt(e.target.value)}
+                                        className="w-full px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md font-mono text-xs md:text-sm resize-y"
+                                        placeholder="Write system prompt here..."
+                                    />
+                                </Card>
+                                
+                                <Card padding="p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-4">Auto-Comment System</h3>
+                                    <p className="text-sm text-foreground-muted mb-4">Configure the automated comment that is generated whenever a pending post clears the approval queue successfully.</p>
+                                    
+                                    <div className="flex gap-2 border-b border-border-subtle pb-4 mb-4 overflow-x-auto remove-scrollbar">
+                                        <button 
+                                            onClick={() => setSelectedCategoryContext("default")}
+                                            className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-300 ${selectedCategoryContext === "default" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground hover:bg-surface-hover"}`}
+                                        >
+                                            Default Comment
+                                        </button>
+                                        {categories.map(cat => (
+                                            <button 
+                                                key={cat.id}
+                                                onClick={() => setSelectedCategoryContext(cat.id)}
+                                                className={`px-4 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-all duration-300 ${selectedCategoryContext === cat.id ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground hover:bg-surface-hover"}`}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-foreground-muted mb-2">Strategy</label>
+                                        <select 
+                                            value={autoComments[selectedCategoryContext]?.strategy || (selectedCategoryContext === "default" ? "off" : "use_default")}
+                                            onChange={(e) => {
+                                                setAutoComments({
+                                                    ...autoComments, 
+                                                    [selectedCategoryContext]: { ...(autoComments[selectedCategoryContext] || {}), strategy: e.target.value }
+                                                });
+                                            }}
+                                            className="w-full md:w-64 px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md"
+                                        >
+                                            {selectedCategoryContext === "default" ? (
+                                                <>
+                                                    <option value="send_to_all">Send to all categories</option>
+                                                    <option value="off">Off</option>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <option value="use_default">Use Default</option>
+                                                    <option value="custom">Custom</option>
+                                                    <option value="off">Off</option>
+                                                </>
+                                            )}
+                                        </select>
+                                    </div>
+                                    
+                                    {((selectedCategoryContext === "default" && autoComments["default"]?.strategy !== "off") || 
+                                      (selectedCategoryContext !== "default" && autoComments[selectedCategoryContext]?.strategy === "custom")) && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-foreground-muted mb-2">Comment Template (Markdown supported)</label>
+                                            <textarea 
+                                                rows={4}
+                                                value={autoComments[selectedCategoryContext]?.text || ""}
+                                                onChange={(e) => {
+                                                    setAutoComments({
+                                                        ...autoComments, 
+                                                        [selectedCategoryContext]: { ...(autoComments[selectedCategoryContext] || {}), text: e.target.value }
+                                                    });
+                                                }}
+                                                className="w-full px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md font-mono text-sm resize-y"
+                                                placeholder="Write your automated comment here..."
+                                            />
+                                        </div>
+                                    )}
+                                </Card>
+
+                                <div className="flex justify-end">
+                                    <button 
+                                        disabled={isSavingAutoMod}
+                                        onClick={handleSaveAutoMod}
+                                        className="px-6 py-2 bg-brand text-white font-medium rounded-lg hover:bg-brand/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isSavingAutoMod ? "Saving..." : "Save Configuration"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
                 {activePage === "logs" && (

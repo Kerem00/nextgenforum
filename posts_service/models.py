@@ -98,3 +98,11 @@ class AdminLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     moderator = relationship("User")
+
+class AutoModConfig(Base):
+    __tablename__ = "automod_config"
+
+    id = Column(Integer, primary_key=True, index=True)
+    llm_prompt = Column(String, nullable=False)
+    auto_comments = Column(JSON, nullable=False, default=dict)
+

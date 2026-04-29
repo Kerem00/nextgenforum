@@ -35,7 +35,46 @@ async def lifespan(app: FastAPI):
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_meta JSON"))
     except Exception as e:
         pass
-        print("Failed to add ai_assist column:", e)
+        print("Failed to add profile_meta column:", e)
+    
+    from .config import AUTOMOD_USERNAME
+    async with database.AsyncSessionLocal() as db:
+        res = await db.execute(select(models.User).where(models.User.username == AUTOMOD_USERNAME))
+        am_user = res.scalar_one_or_none()
+        if not am_user:
+            am_user = models.User(id=0, username=AUTOMOD_USERNAME, email="automod@system.local", role="automod")
+            db.add(am_user)
+            
+        res_cfg = await db.execute(select(models.AutoModConfig).where(models.AutoModConfig.id == 1))
+        am_cfg = res_cfg.scalar_one_or_none()
+        if not am_cfg:
+            initial_prompt = """You are an expert AI forum moderator and content analyst.
+Your task is to analyze user-submitted forum posts and return structured data to our backend system.
+
+### INSTRUCTIONS:
+1. TOXICITY ANALYSIS: Evaluate the content for toxicity. Set 'is_toxic' to true ONLY if the content contains explicit hate speech, targeted harassment, severe profanity, spam, or illegal material. Strong dissenting opinions or mild frustration are NOT toxic. If flagged as toxic, provide a brief 1-sentence explanation in 'toxicity_reason'.
+2. TITLE SUGGESTIONS: Generate exactly 3 relevant, engaging, and clear titles for the post. Avoid clickbait. Keep each title under 60 characters.
+3. CATEGORY ASSIGNMENT: Assign the single most appropriate category from this exact list: [ALLOWED_CATEGORIES]. Do not invent new categories.
+4. LANGUAGE DETECTION: If the content is not in English, return the title suggestions in that language.
+
+### OUTPUT SCHEMA:
+You must respond strictly with raw, valid JSON. Do NOT wrap the response in markdown code blocks (e.g., do not use ```json). Do not include any conversational filler. 
+
+{
+  "is_toxic": boolean,
+  "toxicity_reason": string | null,
+  "title_suggestions": [string, string, string],
+  "suggested_category": string
+}
+
+### CONTENT TO ANALYZE:
+<post_content>
+[CONTENT]
+</post_content>"""
+            am_cfg = models.AutoModConfig(id=1, llm_prompt=initial_prompt, auto_comments={})
+            db.add(am_cfg)
+        
+        await db.commit()
     
     # Start consumer in background
     task = asyncio.create_task(consumer.consume_events())
@@ -48,51 +87,7 @@ async def lifespan(app: FastAPI):
 import json
 import httpx
 
-async def run_ollama_assist(content: str):
-    allowed_categories_list = [c["label"] for c in CATEGORIES]
-    allowed_categories = str(allowed_categories_list)
-
-    prompt = f"""You are an expert AI forum moderator and content analyst.
-Your task is to analyze user-submitted forum posts and return structured data to our backend system.
-
-### INSTRUCTIONS:
-1. TOXICITY ANALYSIS: Evaluate the content for toxicity. Set 'is_toxic' to true ONLY if the content contains explicit hate speech, targeted harassment, severe profanity, spam, or illegal material. Strong dissenting opinions or mild frustration are NOT toxic. If flagged as toxic, provide a brief 1-sentence explanation in 'toxicity_reason'.
-2. TITLE SUGGESTIONS: Generate exactly 3 relevant, engaging, and clear titles for the post. Avoid clickbait. Keep each title under 60 characters.
-3. CATEGORY ASSIGNMENT: Assign the single most appropriate category from this exact list: {allowed_categories}. Do not invent new categories.
-4. LANGUAGE DETECTION: If the content is not in English, return the title suggestions in that language.
-
-### OUTPUT SCHEMA:
-You must respond strictly with raw, valid JSON. Do NOT wrap the response in markdown code blocks (e.g., do not use ```json). Do not include any conversational filler. 
-
-{{
-  "is_toxic": boolean,
-  "toxicity_reason": string | null,
-  "title_suggestions": [string, string, string],
-  "suggested_category": string
-}}
-
-### CONTENT TO ANALYZE:
-<post_content>
-{content}
-</post_content>"""
-    
-    payload = {
-        "model": OLLAMA_MODEL,
-        "prompt": prompt,
-        "stream": False,
-        "format": "json"
-    }
-    
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        try:
-            response = await client.post(OLLAMA_URL, json=payload)
-            response.raise_for_status()
-            result = response.json()
-            raw_text = result.get("response", "").strip()
-            return json.loads(raw_text)
-        except Exception as e:
-            print(f"Ollama assist failed: {e}")
-            return None
+import re
 
 async def run_ai_assist(post_id: int):
     async with database.AsyncSessionLocal() as db:
@@ -103,15 +98,46 @@ async def run_ai_assist(post_id: int):
         
         content = post.content
         
-        parsed_json = await run_ollama_assist(content)
-        if parsed_json:
-            post.ai_assist = parsed_json
-            await db.commit()
-        else:
-            print("AI assist via Ollama failed.")
+        cfg_res = await db.execute(select(models.AutoModConfig).where(models.AutoModConfig.id == 1))
+        am_cfg = cfg_res.scalar_one_or_none()
+        if not am_cfg: return
+        
+        allowed_categories_list = [c["label"] for c in CATEGORIES]
+        allowed_categories = str(allowed_categories_list)
+
+        def replace_tags(match):
+            tag = match.group(0)
+            if tag == "[ALLOWED_CATEGORIES]": return allowed_categories
+            if tag == "[CONTENT]": return content
+            return tag
+
+        prompt = re.sub(r'\[ALLOWED_CATEGORIES\]|\[CONTENT\]', replace_tags, am_cfg.llm_prompt)
+        
+        payload = {
+            "model": OLLAMA_MODEL,
+            "prompt": prompt,
+            "stream": False,
+            "format": "json"
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                response = await client.post(OLLAMA_URL, json=payload)
+                response.raise_for_status()
+                result = response.json()
+                raw_text = result.get("response", "").strip()
+                parsed_json = json.loads(raw_text)
+                post.ai_assist = parsed_json
+                await db.commit()
+            except Exception as e:
+                print(f"Ollama assist failed: {e}")
 
 async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content: str):
     if entity_type == "comment":
+        from .config import ACTIVE_MODEL
+        if ACTIVE_MODEL == "off":
+            return
+            
         # Run ML-based moderation for comments
         is_toxic, confidence = ml_mod(content)
 
@@ -718,6 +744,36 @@ async def approve_post(
     await db.commit()
     await db.refresh(post)
     return post
+
+@app.get("/admin/automod/config", response_model=schemas.AutoModConfig)
+async def get_automod_config(
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    res_cfg = await db.execute(select(models.AutoModConfig).where(models.AutoModConfig.id == 1))
+    am_cfg = res_cfg.scalar_one_or_none()
+    if not am_cfg:
+        raise HTTPException(status_code=404, detail="Config not found")
+    return am_cfg
+
+@app.put("/admin/automod/config", response_model=schemas.AutoModConfig)
+async def update_automod_config(
+    config_update: schemas.AutoModConfigUpdate,
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    res_cfg = await db.execute(select(models.AutoModConfig).where(models.AutoModConfig.id == 1))
+    am_cfg = res_cfg.scalar_one_or_none()
+    if not am_cfg:
+        raise HTTPException(status_code=404, detail="Config not found")
+        
+    am_cfg.llm_prompt = config_update.llm_prompt
+    am_cfg.auto_comments = config_update.auto_comments
+    
+    await db.commit()
+    await db.refresh(am_cfg)
+    return am_cfg
+
 
 @app.post("/admin/posts/{post_id}/deny", status_code=204)
 async def deny_post(

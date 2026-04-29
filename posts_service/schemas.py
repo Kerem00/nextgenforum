@@ -114,3 +114,15 @@ class AdminLog(AdminLogBase):
     created_at: datetime
     moderator: AdminLogModerator | None = None
     model_config = ConfigDict(from_attributes=True)
+
+class AutoModConfigBase(BaseModel):
+    llm_prompt: str
+    auto_comments: dict
+
+class AutoModConfigUpdate(AutoModConfigBase):
+    pass
+
+class AutoModConfig(AutoModConfigBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+

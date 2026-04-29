@@ -48,6 +48,9 @@ def get_ft_model():
     return _ft_model
 
 def ml_mod(text: str) -> tuple[bool, float]:
+    if ACTIVE_MODEL == "off":
+        return False, 0.0
+
     if ACTIVE_MODEL == "fasttext":
         model = get_ft_model()
         text_clean = ml_preprocess(text, "fasttext")
