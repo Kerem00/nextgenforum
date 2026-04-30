@@ -105,4 +105,5 @@ class AutoModConfig(Base):
     id = Column(Integer, primary_key=True, index=True)
     llm_prompt = Column(String, nullable=False)
     auto_comments = Column(JSON, nullable=False, default=dict)
+    llm_model = Column(String, nullable=False, default="llama3.1:latest")
 

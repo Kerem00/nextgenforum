@@ -71,7 +71,7 @@ You must respond strictly with raw, valid JSON. Do NOT wrap the response in mark
 <post_content>
 [CONTENT]
 </post_content>"""
-            am_cfg = models.AutoModConfig(id=1, llm_prompt=initial_prompt, auto_comments={})
+            am_cfg = models.AutoModConfig(id=1, llm_prompt=initial_prompt, auto_comments={}, llm_model=OLLAMA_MODEL)
             db.add(am_cfg)
         
         await db.commit()
@@ -114,7 +114,7 @@ async def run_ai_assist(post_id: int):
         prompt = re.sub(r'\[ALLOWED_CATEGORIES\]|\[CONTENT\]', replace_tags, am_cfg.llm_prompt)
         
         payload = {
-            "model": OLLAMA_MODEL,
+            "model": am_cfg.llm_model,
             "prompt": prompt,
             "stream": False,
             "format": "json"
@@ -769,10 +769,28 @@ async def update_automod_config(
         
     am_cfg.llm_prompt = config_update.llm_prompt
     am_cfg.auto_comments = config_update.auto_comments
+    am_cfg.llm_model = config_update.llm_model
     
     await db.commit()
     await db.refresh(am_cfg)
     return am_cfg
+
+@app.get("/admin/automod/models")
+async def get_automod_models(
+    current_user: Annotated[auth.TokenData, Depends(auth.require_admin)]
+):
+    try:
+        from .config import OLLAMA_URL
+        base_url = OLLAMA_URL.rsplit('/', 1)[0]
+        tags_url = f"{base_url}/tags"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(tags_url)
+            response.raise_for_status()
+            data = response.json()
+            return {"models": [m["name"] for m in data.get("models", [])]}
+    except Exception as e:
+        print(f"Failed to fetch Ollama models: {e}")
+        return {"models": []}
 
 
 @app.post("/admin/posts/{post_id}/deny", status_code=204)

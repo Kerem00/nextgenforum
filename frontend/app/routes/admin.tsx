@@ -103,6 +103,8 @@ export default function Admin() {
     const [selectedCategoryContext, setSelectedCategoryContext] = useState<string>("default");
     const [isSavingAutoMod, setIsSavingAutoMod] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
+    const [availableModels, setAvailableModels] = useState<string[]>([]);
+    const [selectedModel, setSelectedModel] = useState<string>("");
 
     useEffect(() => {
         if (categories.length === 0) {
@@ -113,13 +115,18 @@ export default function Admin() {
     useEffect(() => {
         if (activePage === "automod" && !autoModConfig) {
             setAutoModConfigLoading(true);
-            postsClient.get("/admin/automod/config")
-                .then(res => {
-                    setAutoModConfig(res.data);
-                    setEditingPrompt(res.data.llm_prompt);
-                    setAutoComments(res.data.auto_comments || {});
+            Promise.all([
+                postsClient.get("/admin/automod/config"),
+                postsClient.get("/admin/automod/models")
+            ])
+                .then(([configRes, modelsRes]) => {
+                    setAutoModConfig(configRes.data);
+                    setEditingPrompt(configRes.data.llm_prompt);
+                    setAutoComments(configRes.data.auto_comments || {});
+                    setSelectedModel(configRes.data.llm_model || "");
+                    setAvailableModels(modelsRes.data.models || []);
                 })
-                .catch(err => console.error("Failed to fetch automod config", err))
+                .catch(err => console.error("Failed to fetch automod config/models", err))
                 .finally(() => setAutoModConfigLoading(false));
         }
     }, [activePage, autoModConfig]);
@@ -129,7 +136,8 @@ export default function Admin() {
         try {
             const res = await postsClient.put("/admin/automod/config", {
                 llm_prompt: editingPrompt,
-                auto_comments: autoComments
+                auto_comments: autoComments,
+                llm_model: selectedModel
             });
             setAutoModConfig(res.data);
             alert("AutoMod configuration saved successfully.");
@@ -687,6 +695,21 @@ export default function Admin() {
                             </Card>
                         ) : (
                             <div className="space-y-6">
+                                <Card padding="p-6">
+                                    <h3 className="text-lg font-bold text-foreground mb-4">LLM Model Selection</h3>
+                                    <p className="text-sm text-foreground-muted mb-4">Select the language model to use for AutoMod and AI Assist tasks.</p>
+                                    <select
+                                        value={selectedModel}
+                                        onChange={(e) => setSelectedModel(e.target.value)}
+                                        className="w-full md:w-64 px-3 py-2 bg-surface text-foreground border border-border-subtle rounded-md"
+                                    >
+                                        <option value="" disabled>Select a model...</option>
+                                        {availableModels.map(model => (
+                                            <option key={model} value={model}>{model}</option>
+                                        ))}
+                                    </select>
+                                </Card>
+
                                 <Card padding="p-6">
                                     <h3 className="text-lg font-bold text-foreground mb-4">Zero-Shot System Prompt</h3>
                                     <p className="text-sm text-foreground-muted mb-4">Use <code className="bg-surface-hover px-1 rounded text-brand">[ALLOWED_CATEGORIES]</code> and <code className="bg-surface-hover px-1 rounded text-brand">[CONTENT]</code> as tags to interpolate the real data into the prompt securely.</p>

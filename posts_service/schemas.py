@@ -118,6 +118,7 @@ class AdminLog(AdminLogBase):
 class AutoModConfigBase(BaseModel):
     llm_prompt: str
     auto_comments: dict
+    llm_model: str
 
 class AutoModConfigUpdate(AutoModConfigBase):
     pass
