@@ -21,7 +21,7 @@ async def get_channel():
 async def publish_event(event_type: str, data: dict):
     try:
         # Use a timeout to prevent hanging the whole request if RabbitMQ is down
-        async with asyncio.timeout(3.0):
+        async def do_publish():
             channel = await get_channel()
             # Redeclaring is idempotent and safer than get_exchange in some pika versions
             exchange = await channel.declare_exchange(
@@ -34,6 +34,8 @@ async def publish_event(event_type: str, data: dict):
             )
 
             await exchange.publish(message, routing_key="")
+            
+        await asyncio.wait_for(do_publish(), timeout=3.0)
     except Exception as e:
         print(f"Failed to publish event {event_type}: {e}")
         # We don't raise here to prevent the main user action from failing 
