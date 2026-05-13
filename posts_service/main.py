@@ -26,6 +26,12 @@ async def lifespan(app: FastAPI):
 
     try:
         async with database.engine.begin() as conn:
+            await conn.execute(text("ALTER TYPE content_status ADD VALUE IF NOT EXISTS 'solved'"))
+    except Exception:
+        pass
+
+    try:
+        async with database.engine.begin() as conn:
             await conn.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS ai_assist JSON"))
     except Exception as e:
         pass
@@ -248,8 +254,8 @@ async def get_posts(
 ):
     query = select(models.Post).options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
     
-    # ALWAYS filter out banned posts in the general feed, even for admins.
-    query = query.where(models.Post.status == 'active')
+    # ALWAYS filter out banned/removed/pending posts in the general feed.
+    query = query.where(models.Post.status.in_(['active', 'solved']))
     
     if search:
         query = query.where(models.Post.title.ilike(f"%{search}%"))
@@ -301,7 +307,7 @@ async def get_post(
     
     is_admin = current_user and current_user.role == 'admin'
     if not (is_admin and report_visit):
-        query = query.where(models.Post.status == 'active')
+        query = query.where(models.Post.status.in_(['active', 'solved']))
     result = await db.execute(query)
     post = result.scalar_one_or_none()
     if not post:
@@ -484,6 +490,36 @@ async def pin_comment(
         select(models.Comment)
         .options(selectinload(models.Comment.likes), selectinload(models.Comment.owner), selectinload(models.Comment.post))
         .where(models.Comment.id == comment_id)
+    )
+    return result.scalar_one_or_none()
+
+
+@app.post("/posts/{post_id}/solve", response_model=schemas.Post)
+async def toggle_solve_post(
+    post_id: int,
+    current_user: Annotated[auth.TokenData, Depends(auth.get_current_user)],
+    db: AsyncSession = Depends(database.get_db)
+):
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
+        .where(models.Post.id == post_id)
+    )
+    post = result.scalar_one_or_none()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.owner_id != current_user.user_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only the post owner or admin can mark a post as solved")
+
+    # Toggle: active -> solved, solved -> active
+    post.status = "solved" if post.status == "active" else "active"
+
+    await db.commit()
+
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.likes), selectinload(models.Post.owner), selectinload(models.Post.comments))
+        .where(models.Post.id == post_id)
     )
     return result.scalar_one_or_none()
 

@@ -23,6 +23,7 @@ type Post = {
   owner: { id: number; email: string; username: string };
   likes: any[];
   comment_count: number;
+  status: string;
 };
 
 type CategoryConfig = {
@@ -105,6 +106,10 @@ function CommentIcon({ className = "w-4 h-4" }: { className?: string }) {
 
 function PencilIcon({ className = "w-3 h-3" }: { className?: string }) {
   return <svg className={className} {...svgBase}><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>;
+}
+
+function CheckCircleIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
 }
 
 function SpinnerIcon({ className = "w-4 h-4" }: { className?: string }) {
@@ -589,6 +594,7 @@ export default function Home() {
               const catConf = getCatConfig(post.category);
               const catColor = hashColor(post.category);
               const isHot = (post.likes?.length || 0) > 10 || (post.comment_count || 0) > 15;
+              const isSolved = post.status === "solved";
 
               if (viewMode === "compact") {
                 // ─── Compact View ───
@@ -596,13 +602,19 @@ export default function Home() {
                   <Link key={post.id} to={`/posts/${post.id}`} className="block group"
                     onClick={() => localStorage.setItem("ngf_last_read", JSON.stringify({ postId: post.id, title: post.title, category: post.category, timestamp: Date.now() }))}
                     style={{ animation: `fadeInUp 0.3s ease-out ${index * 40}ms both` }}>
-                    <div className={`flex items-center gap-3 card-surface hover-shadow-brand rounded-lg border border-border-subtle py-3 px-4 shadow-sm hover:shadow-lg transition-all duration-200 group-hover:-translate-y-0.5 border-l-4`}
-                      style={{ borderLeftColor: `var(--tw-${catColor.replace("bg-", "")}, currentColor)` }}>
+                    <div className={`flex items-center gap-3 card-surface hover-shadow-brand rounded-lg border py-3 px-4 shadow-sm hover:shadow-lg transition-all duration-200 group-hover:-translate-y-0.5 border-l-4 ${
+                      isSolved ? "border-green-500/50 border-l-green-500" : "border-border-subtle"
+                    }`}>
                       <CategoryIcon name={catConf?.icon || "message-square"} className="w-4 h-4 text-foreground-muted flex-shrink-0" />
                       <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition-colors truncate flex-1 leading-snug">
                         {isHot && <FlameIcon className="w-3.5 h-3.5 inline text-orange-400 mr-1" />}
                         {post.title}
                       </h3>
+                      {isSolved && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex-shrink-0">
+                          <CheckCircleIcon className="w-3 h-3" />Solved
+                        </span>
+                      )}
                       <span className="text-xs text-foreground-muted capitalize whitespace-nowrap">{post.category}</span>
                       <span className="text-xs text-foreground-muted whitespace-nowrap">{timeAgo(post.created_at)}</span>
                       <div className="flex items-center gap-3 text-xs text-foreground-muted flex-shrink-0">
@@ -624,7 +636,11 @@ export default function Home() {
                   <div className="relative overflow-hidden rounded-xl">
                     {/* Gradient top border on hover */}
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-brand to-brand/70 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10" />
-                    <div className="card-surface hover-shadow-brand rounded-xl border border-border-subtle p-5 shadow-sm group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200 relative overflow-visible">
+                    {/* Solved: green top border always visible */}
+                    {isSolved && <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-green-500 to-emerald-400 z-10" />}
+                    <div className={`card-surface hover-shadow-brand rounded-xl border p-5 shadow-sm group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all duration-200 relative overflow-visible ${
+                      isSolved ? "border-green-500/30" : "border-border-subtle"
+                    }`}>
                       <button
                         onClick={(e) => toggleBookmark(e, post.id, post.title)}
                         className={`absolute top-3 right-12 p-1.5 rounded-lg transition-all 
@@ -668,6 +684,11 @@ export default function Home() {
                           <CategoryIcon name={catConf?.icon || "message-square"} className="w-3 h-3" />
                           {post.category}
                         </span>
+                        {isSolved && (
+                          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                            <CheckCircleIcon className="w-3 h-3" />Solved
+                          </span>
+                        )}
                         <span className="text-xs text-foreground-muted">&middot;</span>
                         <span className="text-xs text-foreground-muted">{timeAgo(post.created_at)}</span>
                         <span className="text-xs text-foreground-muted">

@@ -9,6 +9,7 @@ class ContentStatus(str, enum.Enum):
     banned = "banned"
     removed = "removed"
     pending = "pending"
+    solved = "solved"
 
 class User(Base):
     __tablename__ = "users"

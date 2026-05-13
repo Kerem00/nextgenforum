@@ -613,6 +613,24 @@ export default function PostDetail() {
         setShowCommentMenu(null);
     };
 
+    const [solvingPost, setSolvingPost] = useState(false);
+    const handleSolvePost = async () => {
+        if (!postId || !post) return;
+        try {
+            setSolvingPost(true);
+            const res = await postsClient.post(`/posts/${postId}/solve`);
+            setPost(res.data);
+            showToast(
+                res.data.status === 'solved' ? 'Post marked as solved!' : 'Post marked as active.',
+                'success'
+            );
+        } catch (err) {
+            console.error('Failed to toggle solve status', err);
+        } finally {
+            setSolvingPost(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className={`max-w-3xl mx-auto space-y-8 transition-opacity duration-500 ${showSkeleton ? 'opacity-100' : 'opacity-0'}`}>
@@ -659,6 +677,34 @@ export default function PostDetail() {
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 <span className="text-foreground font-medium truncate max-w-[200px] sm:max-w-xs">{post.title}</span>
             </nav>
+
+            {/* ── Solved Banner ── */}
+            {post.status === "solved" && (
+                <div className="flex items-center gap-3 rounded-xl px-5 py-3.5 mb-2
+                    bg-gradient-to-r from-green-500/10 via-emerald-500/5 to-transparent
+                    border border-green-500/25
+                    shadow-[0_0_20px_rgba(34,197,94,0.08)]
+                    animate-[fadeInDown_0.4s_ease-out]">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/15 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-green-600 dark:text-green-400">Issue Resolved</p>
+                        <p className="text-xs text-foreground-muted">This discussion has been marked as solved.</p>
+                    </div>
+                    {comments.some(c => c.is_pinned) && (
+                        <a
+                            href="#accepted-solution"
+                            className="flex-shrink-0 text-xs font-semibold text-green-600 dark:text-green-400 hover:underline whitespace-nowrap"
+                        >
+                            View solution ↓
+                        </a>
+                    )}
+                </div>
+            )}
 
             {showPinModal !== null && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -816,6 +862,27 @@ export default function PostDetail() {
                                     </svg>
                                     <span className="font-medium">{bookmarks.includes(post.id) ? "Saved" : "Save"}</span>
                                 </button>
+                                {/* Mark as Solved — only post owner or admin */}
+                                {(user.id === post.owner_id || isAdmin) && (
+                                    <button
+                                        onClick={handleSolvePost}
+                                        disabled={solvingPost}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ml-auto ${
+                                            post.status === 'solved'
+                                                ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)] scale-105'
+                                                : 'bg-background border-border-subtle text-foreground hover:bg-green-500/5 hover:border-green-500/40 hover:text-green-600'
+                                        } disabled:opacity-50`}
+                                        title={post.status === 'solved' ? 'Unmark as solved' : 'Mark as solved'}
+                                    >
+                                        <svg className={`w-4 h-4 transition-transform duration-300 ${post.status === 'solved' ? 'fill-none scale-110' : 'fill-none'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                            <polyline points="22 4 12 14.01 9 11.01" />
+                                        </svg>
+                                        <span className="font-medium">
+                                            {solvingPost ? 'Saving...' : post.status === 'solved' ? 'Solved ✓' : 'Mark Solved'}
+                                        </span>
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-subtle bg-background text-foreground-muted text-sm">
@@ -895,8 +962,87 @@ export default function PostDetail() {
                     </Card>
                 )}
 
+                {/* ── Accepted Solution (pinned comment) ── */}
+                {post.status === "solved" && comments.some(c => c.is_pinned) && (() => {
+                    const pinnedComment = comments.find(c => c.is_pinned)!;
+                    const isPinnedLikedByMe = user ? pinnedComment.likes?.some(l => l.owner_id === user.id) : false;
+                    return (
+                        <div id="accepted-solution" className="rounded-xl border border-green-500/30 bg-gradient-to-br from-green-500/5 via-emerald-500/3 to-transparent shadow-[0_0_20px_rgba(34,197,94,0.08)] overflow-hidden animate-[fadeInUp_0.4s_ease-out]">
+                            {/* Header */}
+                            <div className="flex items-center gap-2.5 px-5 py-3 border-b border-green-500/20 bg-green-500/8">
+                                <svg className="w-4 h-4 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                                <span className="text-sm font-bold text-green-600 dark:text-green-400">Accepted Solution</span>
+                                <div className="ml-auto flex items-center gap-3">
+                                    <span className="text-xs text-foreground-muted">Pinned by post author</span>
+                                    {user && (user.id === post.owner_id || isAdmin) && (
+                                        <button
+                                            onClick={() => handlePinComment(pinnedComment.id)}
+                                            disabled={pinningCommentId === pinnedComment.id}
+                                            className="text-xs font-medium text-foreground-muted hover:text-foreground px-2 py-1 rounded-md hover:bg-surface-raised transition-colors cursor-pointer border border-border-subtle disabled:opacity-50"
+                                            title="Unpin this comment"
+                                        >
+                                            {pinningCommentId === pinnedComment.id ? 'Unpinning...' : 'Unpin'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            {/* Comment body */}
+                            <div className="flex gap-4 p-5">
+                                <Link to={`/users/${pinnedComment.owner_id}`} className="flex-shrink-0">
+                                    <div className={`w-9 h-9 rounded-full ${hashColor(pinnedComment.owner.username)} text-white flex items-center justify-center font-bold text-sm uppercase`}>
+                                        {pinnedComment.owner.username.charAt(0)}
+                                    </div>
+                                </Link>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Link to={`/users/${pinnedComment.owner_id}`} className="font-semibold text-foreground text-sm hover:text-brand transition-colors">
+                                            {pinnedComment.owner.username}
+                                        </Link>
+                                        <span className="text-xs text-foreground-muted">{timeAgo(pinnedComment.created_at)}</span>
+                                        {pinnedComment.is_edited && <span className="text-xs text-foreground-muted italic">Edited</span>}
+                                    </div>
+                                    <div className="markdown-content text-foreground text-sm">
+                                        {renderCommentContent(pinnedComment.content, Array.from(new Map(comments.map((c: Comment) => [c.owner.id, c.owner])).values()) as { id: number, username: string }[])}
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-3">
+                                        {user ? (
+                                            <button
+                                                onClick={() => handleLikeComment(pinnedComment.id)}
+                                                disabled={likingComments[pinnedComment.id]}
+                                                className={`flex items-center gap-1.5 text-xs font-medium transition-all duration-200 cursor-pointer ${
+                                                    isPinnedLikedByMe
+                                                        ? "text-red-500 drop-shadow-[0_0_6px_rgba(239,68,68,0.4)]"
+                                                        : "text-foreground-muted hover:text-red-400"
+                                                }`}
+                                            >
+                                                <svg className={`w-4 h-4 ${isPinnedLikedByMe ? "fill-current" : "fill-none"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isPinnedLikedByMe ? "0" : "2"}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                </svg>
+                                                {pinnedComment.likes?.length || 0} likes
+                                            </button>
+                                        ) : (
+                                            <span className="flex items-center gap-1 text-xs text-foreground-muted">
+                                                <svg className="w-4 h-4 fill-none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                                {pinnedComment.likes?.length || 0} likes
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 <div className="space-y-4">
                     {comments.map(comment => {
+                        // If this comment is the pinned Accepted Solution, skip it in the
+                        // regular list to avoid showing it twice.
+                        const isAcceptedSolution = post.status === 'solved' && comment.is_pinned;
+                        if (isAcceptedSolution) return null;
+
                         const isCommentLikedByMe = user ? comment.likes?.some(l => l.owner_id === user.id) : false;
                         const isEditingThis = editingCommentId === comment.id;
                         const isTargetedByReport = searchParams.get('report_visit') === comment.id.toString();
