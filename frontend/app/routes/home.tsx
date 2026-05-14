@@ -183,6 +183,28 @@ export default function Home() {
   const [displayCount, setDisplayCount] = useState(10);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // ─── Animated Bar Placeholder ──────────────────────────────────────
+  const barPlaceholders = [
+    "What's on your mind? Start a discussion...",
+    "Got a question? Ask the community...",
+    "Share something cool you discovered...",
+    "Got a hot take? Drop it here...",
+    "Stuck on something? We've got answers...",
+  ];
+  const [barPlaceholderIdx, setBarPlaceholderIdx] = useState(0);
+  const [barPlaceholderVisible, setBarPlaceholderVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBarPlaceholderVisible(false);
+      setTimeout(() => {
+        setBarPlaceholderIdx(i => (i + 1) % barPlaceholders.length);
+        setBarPlaceholderVisible(true);
+      }, 350);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [showLastRead, setShowLastRead] = useState(false);
   const [lastRead, setLastRead] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -438,7 +460,7 @@ export default function Home() {
         )}
 
         {/* ── Page Header ── */}
-        <div className="rounded-2xl bg-gradient-to-br from-brand/5 to-transparent p-6 -mx-2"
+        <div className="rounded-2xl bg-gradient-to-br from-brand/5 to-transparent p-6 -mx-2 flex flex-col md:flex-row md:items-center justify-between gap-4"
           style={{ animation: "fadeInUp 0.3s ease-out both" }}>
           {searchQuery ? (
             <div>
@@ -460,11 +482,27 @@ export default function Home() {
               </p>
             </div>
           )}
+
+          {/* Sort + View toggles moved to header */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <CustomSelect value={sortFilter} onChange={(v) => { setSortFilter(v); setDisplayCount(10); }} options={sortOptions} className="w-40" />
+            <div className="flex items-center bg-surface border border-border-subtle rounded-lg overflow-hidden">
+              <button onClick={() => setViewMode("list")} title="List view"
+                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "list" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
+                <svg className="w-4 h-4" {...svgBase}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
+              </button>
+              <div className="w-px h-4 bg-border-subtle" />
+              <button onClick={() => setViewMode("compact")} title="Compact view"
+                className={`p-1.5 transition-colors cursor-pointer ${viewMode === "compact" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
+                <svg className="w-4 h-4" {...svgBase}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><line x1="14" y1="4" x2="21" y2="4" /><line x1="14" y1="9" x2="21" y2="9" /><line x1="14" y1="15" x2="21" y2="15" /><line x1="14" y1="20" x2="21" y2="20" /></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* ── Category Tab Bar + Controls ── */}
+        {/* ── Category Tab Bar ── */}
         <div className="space-y-3">
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="flex items-center">
             <div ref={tabBarRef} className="flex-1 overflow-x-auto scrollbar-hide">
               <div className="flex items-center gap-2 pb-1">
                 {/* All tab */}
@@ -490,21 +528,6 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            {/* Sort + View toggles */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <CustomSelect value={sortFilter} onChange={(v) => { setSortFilter(v); setDisplayCount(10); }} options={sortOptions} className="w-40" />
-              <div className="flex items-center bg-surface border border-border-subtle rounded-lg overflow-hidden">
-                <button onClick={() => setViewMode("list")} title="List view"
-                  className={`p-1.5 transition-colors cursor-pointer ${viewMode === "list" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
-                  <svg className="w-4 h-4" {...svgBase}><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
-                </button>
-                <div className="w-px h-4 bg-border-subtle" />
-                <button onClick={() => setViewMode("compact")} title="Compact view"
-                  className={`p-1.5 transition-colors cursor-pointer ${viewMode === "compact" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
-                  <svg className="w-4 h-4" {...svgBase}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><line x1="14" y1="4" x2="21" y2="4" /><line x1="14" y1="9" x2="21" y2="9" /><line x1="14" y1="15" x2="21" y2="15" /><line x1="14" y1="20" x2="21" y2="20" /></svg>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -518,7 +541,12 @@ export default function Home() {
                   <div className={`w-8 h-8 rounded-full ${hashColor(user.username)} flex items-center justify-center font-bold text-xs text-white uppercase flex-shrink-0`}>
                     {user.username.charAt(0)}
                   </div>
-                  <span className="text-foreground-muted text-sm flex-1 text-left">What's on your mind? Start a discussion...</span>
+                  <span
+                    className="text-foreground-muted text-sm flex-1 text-left transition-opacity duration-300"
+                    style={{ opacity: barPlaceholderVisible ? 1 : 0 }}
+                  >
+                    {barPlaceholders[barPlaceholderIdx]}
+                  </span>
                   <span className="inline-flex items-center gap-1.5 bg-brand text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0">
                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     New Discussion
