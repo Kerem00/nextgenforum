@@ -453,19 +453,11 @@ export default function Home() {
               <p className="text-sm text-foreground-muted mt-1">{posts.length} result{posts.length !== 1 ? "s" : ""} found</p>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Discussions</h1>
-                <p className="text-sm text-foreground-muted mt-1">
-                  {posts.length} posts across {categories.length} categories
-                </p>
-              </div>
-              {user && (
-                <button onClick={handleOpenForm} className="hidden md:inline-flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer shadow-sm">
-                  <svg className="w-4 h-4" {...svgBase} stroke="white"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                  New Discussion
-                </button>
-              )}
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Discussions</h1>
+              <p className="text-sm text-foreground-muted mt-1">
+                {posts.length} posts across {categories.length} categories
+              </p>
             </div>
           )}
         </div>
@@ -527,7 +519,10 @@ export default function Home() {
                     {user.username.charAt(0)}
                   </div>
                   <span className="text-foreground-muted text-sm flex-1 text-left">What's on your mind? Start a discussion...</span>
-                  <span className="bg-brand text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0">Post</span>
+                  <span className="inline-flex items-center gap-1.5 bg-brand text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex-shrink-0">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Discussion
+                  </span>
                 </button>
               ) : (
                 <div className="p-5 space-y-4 animate-[fadeInUp_0.3s_ease-out]">
