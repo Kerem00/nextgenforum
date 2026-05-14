@@ -671,6 +671,19 @@ async def admin_delete_comment(
     await db.commit()
     return Response(status_code=204)
 
+@app.get("/stats")
+async def get_public_stats(db: AsyncSession = Depends(database.get_db)):
+    """Public endpoint to get basic community stats for the homepage widget."""
+    total_posts = (await db.execute(select(func.count(models.Post.id)))).scalar() or 0
+    total_comments = (await db.execute(select(func.count(models.Comment.id)))).scalar() or 0
+    total_users = (await db.execute(select(func.count(models.User.id)))).scalar() or 0
+    
+    return {
+        "total_posts": total_posts,
+        "total_comments": total_comments,
+        "total_users": total_users,
+    }
+
 @app.get("/admin/stats")
 async def get_admin_stats(
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)],

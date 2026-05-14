@@ -187,7 +187,7 @@ export default function Profile() {
                 dayOfWeekCounts[dow] += day.count;
             }
         }
-        const DAY_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const bestDayIndex = dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts));
         const bestDay = total > 0 ? DAY_NAMES[bestDayIndex] : null;
 
@@ -270,7 +270,7 @@ export default function Profile() {
                                             font-bold px-2.5 py-1 rounded-full
                                             border border-orange-500/20 ml-3 align-middle mb-1">
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"
-                                     stroke="none">
+                                    stroke="none">
                                     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3
                                              -1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5
                                              2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294
@@ -294,7 +294,7 @@ export default function Profile() {
                         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 
                                         mt-4 px-6 py-3 rounded-2xl bg-surface-raised/50 
                                         border border-border-subtle backdrop-blur-md shadow-sm">
-                            
+
                             {/* Location Pill */}
                             {profileMeta.location && (profileMeta.privacy?.showLocation ?? true) && (
                                 <div className="flex items-center gap-1.5 text-xs font-semibold
@@ -302,10 +302,10 @@ export default function Profile() {
                                                 px-3 py-1.5 rounded-full shadow-sm hover:border-brand/40 
                                                 transition-all duration-300">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                                         strokeLinejoin="round" className="text-brand/70">
-                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                        <circle cx="12" cy="10" r="3"/>
+                                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                                        strokeLinejoin="round" className="text-brand/70">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                        <circle cx="12" cy="10" r="3" />
                                     </svg>
                                     {profileMeta.location}
                                 </div>
@@ -331,10 +331,10 @@ export default function Profile() {
                                                  duration-200 press-effect"
                                     >
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                             stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                                             strokeLinejoin="round">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <line x1="2" y1="12" x2="22" y2="12"/>
+                                            stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                                            strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="2" y1="12" x2="22" y2="12" />
                                             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10
                                                      15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                                         </svg>
@@ -352,7 +352,7 @@ export default function Profile() {
                                                  duration-200 press-effect"
                                     >
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                                         </svg>
                                     </a>
                                 )}
@@ -368,7 +368,7 @@ export default function Profile() {
                                                  duration-200 press-effect"
                                     >
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s 2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s 2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
                                         </svg>
                                     </a>
                                 )}
@@ -427,224 +427,224 @@ export default function Profile() {
                     <div className="flex flex-col gap-6 items-center w-full">
                         <div className="w-full overflow-x-auto scrollbar-hide pb-2">
                             <div className="w-max mx-auto flex flex-col justify-center">
-                        {(() => {
-                            const weeks = [];
-                            for (let w = 0; w < 16; w++) {
-                                weeks.push(activityData.days[w * 7]);
-                            }
-                            const monthLabels: { label: string; weekIndex: number }[] = [];
-                            let lastMonth = "";
-                            weeks.forEach((day, i) => {
-                                if (!day) return;
-                                const month = new Date(day.date).toLocaleDateString("en-US", {
-                                    month: "short",
-                                });
-                                if (month !== lastMonth) {
-                                    monthLabels.push({ label: month, weekIndex: i });
-                                    lastMonth = month;
-                                }
-                            });
+                                {(() => {
+                                    const weeks = [];
+                                    for (let w = 0; w < 16; w++) {
+                                        weeks.push(activityData.days[w * 7]);
+                                    }
+                                    const monthLabels: { label: string; weekIndex: number }[] = [];
+                                    let lastMonth = "";
+                                    weeks.forEach((day, i) => {
+                                        if (!day) return;
+                                        const month = new Date(day.date).toLocaleDateString("en-US", {
+                                            month: "short",
+                                        });
+                                        if (month !== lastMonth) {
+                                            monthLabels.push({ label: month, weekIndex: i });
+                                            lastMonth = month;
+                                        }
+                                    });
 
-                            return (
-                                <div className="flex mb-2 pl-[32px]" style={{ gap: "4px" }}>
-                                    {Array.from({ length: 16 }).map((_, weekIdx) => {
-                                        const label = monthLabels.find(m => m.weekIndex === weekIdx);
-                                        return (
-                                            <div
-                                                key={weekIdx}
-                                                className="text-[10px] text-foreground-muted font-medium"
-                                                style={{ width: 14, flexShrink: 0 }}
-                                            >
-                                                {label ? label.label : ""}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            );
-                        })()}
+                                    return (
+                                        <div className="flex mb-2 pl-[32px]" style={{ gap: "4px" }}>
+                                            {Array.from({ length: 16 }).map((_, weekIdx) => {
+                                                const label = monthLabels.find(m => m.weekIndex === weekIdx);
+                                                return (
+                                                    <div
+                                                        key={weekIdx}
+                                                        className="text-[10px] text-foreground-muted font-medium"
+                                                        style={{ width: 14, flexShrink: 0 }}
+                                                    >
+                                                        {label ? label.label : ""}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
 
-                        <div className="flex items-start gap-3">
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateRows: "repeat(7, 14px)",
-                                    gap: "4px",
-                                    paddingTop: 0,
-                                }}
-                            >
-                                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => (
+                                <div className="flex items-start gap-3">
                                     <div
-                                        key={d}
-                                        className="text-[10px] text-foreground-muted flex items-center pr-2 font-medium"
-                                        style={{ height: 14, visibility: i % 2 === 0 ? "hidden" : "visible" }}
+                                        style={{
+                                            display: "grid",
+                                            gridTemplateRows: "repeat(7, 14px)",
+                                            gap: "4px",
+                                            paddingTop: 0,
+                                        }}
                                     >
-                                        {d}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div
-                                className="relative"
-                                onMouseLeave={() => setHoveredDay(null)}
-                            >
-                                <div
-                                    style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(16, 14px)",
-                                        gridTemplateRows: "repeat(7, 14px)",
-                                        gap: "4px",
-                                        gridAutoFlow: "column",
-                                    }}
-                                >
-                                    {activityData.days.map((day) => {
-                                        const intensity = getIntensity(day.count);
-                                        return (
+                                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
                                             <div
-                                                key={day.date}
-                                                style={{
-                                                    width: 14,
-                                                    height: 14,
-                                                    borderRadius: 3,
-                                                    cursor: day.count > 0 ? "pointer" : "default",
-                                                    transition: "transform 0.1s ease, opacity 0.1s ease",
-                                                    ...getIntensityStyle(intensity),
-                                                }}
-                                                onMouseEnter={e => {
-                                                    const rect = (e.target as HTMLElement).getBoundingClientRect();
-                                                    const containerRect = (e.target as HTMLElement)
-                                                        .closest(".relative")!
-                                                        .getBoundingClientRect();
-                                                    setHoveredDay({
-                                                        ...day,
-                                                        x: rect.left - containerRect.left + rect.width / 2,
-                                                        y: rect.top - containerRect.top,
-                                                    });
-                                                    (e.target as HTMLElement).style.transform = "scale(1.3)";
-                                                }}
-                                                onMouseLeave={e => {
-                                                    (e.target as HTMLElement).style.transform = "scale(1)";
-                                                }}
-                                            />
-                                        );
-                                    })}
-                                </div>
+                                                key={d}
+                                                className="text-[10px] text-foreground-muted flex items-center pr-2 font-medium"
+                                                style={{ height: 14, visibility: i % 2 === 0 ? "hidden" : "visible" }}
+                                            >
+                                                {d}
+                                            </div>
+                                        ))}
+                                    </div>
 
-                                {hoveredDay && (
                                     <div
-                                        className="absolute z-20 pointer-events-none
+                                        className="relative"
+                                        onMouseLeave={() => setHoveredDay(null)}
+                                    >
+                                        <div
+                                            style={{
+                                                display: "grid",
+                                                gridTemplateColumns: "repeat(16, 14px)",
+                                                gridTemplateRows: "repeat(7, 14px)",
+                                                gap: "4px",
+                                                gridAutoFlow: "column",
+                                            }}
+                                        >
+                                            {activityData.days.map((day) => {
+                                                const intensity = getIntensity(day.count);
+                                                return (
+                                                    <div
+                                                        key={day.date}
+                                                        style={{
+                                                            width: 14,
+                                                            height: 14,
+                                                            borderRadius: 3,
+                                                            cursor: day.count > 0 ? "pointer" : "default",
+                                                            transition: "transform 0.1s ease, opacity 0.1s ease",
+                                                            ...getIntensityStyle(intensity),
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            const rect = (e.target as HTMLElement).getBoundingClientRect();
+                                                            const containerRect = (e.target as HTMLElement)
+                                                                .closest(".relative")!
+                                                                .getBoundingClientRect();
+                                                            setHoveredDay({
+                                                                ...day,
+                                                                x: rect.left - containerRect.left + rect.width / 2,
+                                                                y: rect.top - containerRect.top,
+                                                            });
+                                                            (e.target as HTMLElement).style.transform = "scale(1.3)";
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            (e.target as HTMLElement).style.transform = "scale(1)";
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </div>
+
+                                        {hoveredDay && (
+                                            <div
+                                                className="absolute z-20 pointer-events-none
                                                    bg-surface border border-border-subtle rounded-xl
                                                    px-3 py-2 shadow-xl shadow-[var(--theme-brand-glow)]
                                                    text-xs font-medium whitespace-nowrap
                                                    animate-[fadeInUp_0.15s_ease-out]"
-                                        style={{
-                                            left: Math.max(0, Math.min(hoveredDay.x - 60, 180)),
-                                            top: hoveredDay.y - 52,
-                                        }}
-                                    >
-                                        <span className="text-foreground font-semibold">
-                                            {hoveredDay.count > 0
-                                                ? `${hoveredDay.count} action${hoveredDay.count > 1 ? "s" : ""}`
-                                                : "No activity"}
-                                        </span>
-                                        <span className="text-foreground-muted ml-1">
-                                            — {hoveredDay.label}
-                                        </span>
+                                                style={{
+                                                    left: Math.max(0, Math.min(hoveredDay.x - 60, 180)),
+                                                    top: hoveredDay.y - 52,
+                                                }}
+                                            >
+                                                <span className="text-foreground font-semibold">
+                                                    {hoveredDay.count > 0
+                                                        ? `${hoveredDay.count} action${hoveredDay.count > 1 ? "s" : ""}`
+                                                        : "No activity"}
+                                                </span>
+                                                <span className="text-foreground-muted ml-1">
+                                                    — {hoveredDay.label}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 mt-3 justify-end pr-2 w-full">
-                            <span className="text-[10px] text-foreground-muted">Less</span>
-                            {([0, 1, 2, 3, 4] as const).map(level => (
-                                <div
-                                    key={level}
-                                    style={{
-                                        width: 11,
-                                        height: 11,
-                                        borderRadius: 2,
-                                        ...getIntensityStyle(level),
-                                    }}
-                                />
-                            ))}
-                            <span className="text-[10px] text-foreground-muted">More</span>
-                        </div>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-center gap-2.5 w-full px-2">
-                        <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
-                            <div className="text-orange-500 flex items-center justify-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3 -1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
-                                </svg>
-                            </div>
-                            <div className="text-sm font-semibold text-foreground tracking-tight">
-                                {activityData.currentStreak} <span className="text-foreground-muted font-medium text-xs ml-0.5">streak</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
-                            <div className="text-brand flex items-center justify-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-                                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-                                    <path d="M4 22h16"/>
-                                    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-                                    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-                                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-                                </svg>
-                            </div>
-                            <div className="text-sm font-semibold text-foreground tracking-tight">
-                                {activityData.longestStreak} <span className="text-foreground-muted font-medium text-xs ml-0.5">best</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
-                            <div className="text-green-500 flex items-center justify-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="16" y1="2" x2="16" y2="6"/>
-                                    <line x1="8" y1="2" x2="8" y2="6"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                            </div>
-                            <div className="text-xs font-semibold text-foreground tracking-tight max-w-[120px] truncate">
-                                {activityData.bestDay ?? "—"}
-                            </div>
-                        </div>
-
-                        {activityData.topCategory && (
-                            <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
-                                <div className="text-purple-500 flex items-center justify-center">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="4" y1="9" x2="20" y2="9"/>
-                                        <line x1="4" y1="15" x2="20" y2="15"/>
-                                        <line x1="10" y1="3" x2="8" y2="21"/>
-                                        <line x1="16" y1="3" x2="14" y2="21"/>
-                                    </svg>
                                 </div>
-                                <div className="text-xs font-semibold text-foreground tracking-tight capitalize max-w-[120px] truncate">
-                                    {activityData.topCategory[0]}
+
+                                <div className="flex items-center gap-2 mt-3 justify-end pr-2 w-full">
+                                    <span className="text-[10px] text-foreground-muted">Less</span>
+                                    {([0, 1, 2, 3, 4] as const).map(level => (
+                                        <div
+                                            key={level}
+                                            style={{
+                                                width: 11,
+                                                height: 11,
+                                                borderRadius: 2,
+                                                ...getIntensityStyle(level),
+                                            }}
+                                        />
+                                    ))}
+                                    <span className="text-[10px] text-foreground-muted">More</span>
                                 </div>
                             </div>
-                        )}
+                        </div>
 
-                        {activityData.peakWeekCount > 0 && (
+                        <div className="flex flex-wrap items-center justify-center gap-2.5 w-full px-2">
                             <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
-                                <div className="text-blue-500 flex items-center justify-center">
+                                <div className="text-orange-500 flex items-center justify-center">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-                                        <polyline points="16 7 22 7 22 13"/>
+                                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3 -1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
                                     </svg>
                                 </div>
                                 <div className="text-sm font-semibold text-foreground tracking-tight">
-                                    {activityData.peakWeekCount} <span className="text-foreground-muted font-medium text-xs ml-0.5">best week</span>
+                                    {activityData.currentStreak} <span className="text-foreground-muted font-medium text-xs ml-0.5">streak</span>
                                 </div>
                             </div>
-                        )}
+
+                            <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
+                                <div className="text-brand flex items-center justify-center">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                                        <path d="M4 22h16" />
+                                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+                                    </svg>
+                                </div>
+                                <div className="text-sm font-semibold text-foreground tracking-tight">
+                                    {activityData.longestStreak} <span className="text-foreground-muted font-medium text-xs ml-0.5">best</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
+                                <div className="text-green-500 flex items-center justify-center">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                </div>
+                                <div className="text-xs font-semibold text-foreground tracking-tight max-w-[120px] truncate">
+                                    {activityData.bestDay ?? "—"}
+                                </div>
+                            </div>
+
+                            {activityData.topCategory && (
+                                <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
+                                    <div className="text-purple-500 flex items-center justify-center">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="4" y1="9" x2="20" y2="9" />
+                                            <line x1="4" y1="15" x2="20" y2="15" />
+                                            <line x1="10" y1="3" x2="8" y2="21" />
+                                            <line x1="16" y1="3" x2="14" y2="21" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-xs font-semibold text-foreground tracking-tight capitalize max-w-[120px] truncate">
+                                        {activityData.topCategory[0]}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activityData.peakWeekCount > 0 && (
+                                <div className="flex items-center gap-2 bg-background border border-border-subtle rounded-full px-3.5 py-1.5 shadow-sm hover:border-brand/30 transition-colors">
+                                    <div className="text-blue-500 flex items-center justify-center">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                                            <polyline points="16 7 22 7 22 13" />
+                                        </svg>
+                                    </div>
+                                    <div className="text-sm font-semibold text-foreground tracking-tight">
+                                        {activityData.peakWeekCount} <span className="text-foreground-muted font-medium text-xs ml-0.5">best week</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
-            </div>
 
                     {activityData.total === 0 && (
                         <div className="absolute inset-0 flex items-center justify-center

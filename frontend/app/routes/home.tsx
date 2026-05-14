@@ -364,9 +364,9 @@ export default function Home() {
 
   const fetchForumStats = async () => {
     try {
-      const res = await postsClient.get("/admin/stats");
+      const res = await postsClient.get("/stats");
       setForumStats({ total_posts: res.data.total_posts, total_comments: res.data.total_comments, total_users: res.data.total_users });
-    } catch { /* non-admin, will use fallback */ }
+    } catch { /* silent */ }
   };
 
   // ─── Effects ──────────────────────────────────────────────────────
