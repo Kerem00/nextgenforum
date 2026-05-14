@@ -115,10 +115,33 @@ export default function Profile() {
         y: number;
     } | null>(null);
 
+    // Only consider active/solved posts — filter out banned/pending/deleted
+    const activePosts = useMemo(() =>
+        (profileData?.posts || []).filter(p => p.status === "active" || p.status === "solved"),
+        [profileData?.posts]
+    );
+
+    // Sort posts newest-first for the Activity section
+    const sortedPosts = useMemo(() =>
+        [...activePosts].sort((a, b) =>
+            new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+        ),
+        [activePosts]
+    );
+
+    // Sort comments newest-first
+    const sortedComments = useMemo(() =>
+        [...(profileData?.comments || [])].sort((a, b) =>
+            new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime()
+        ),
+        [profileData?.comments]
+    );
+
     const activityData = useMemo(() => {
         const countMap: Record<string, number> = {};
 
-        (profileData?.posts || []).forEach(post => {
+        // Only count active/solved posts in the heatmap
+        activePosts.forEach(post => {
             if (!post.created_at) return;
             const date = new Date(post.created_at)
                 .toISOString().split("T")[0];
@@ -191,9 +214,9 @@ export default function Profile() {
         const bestDayIndex = dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts));
         const bestDay = total > 0 ? DAY_NAMES[bestDayIndex] : null;
 
-        // ── Top category (from profileData.posts)
+        // ── Top category (from active posts only)
         const catCounts: Record<string, number> = {};
-        (profileData?.posts || []).forEach(p => {
+        activePosts.forEach(p => {
             if (!p.category) return;
             catCounts[p.category] = (catCounts[p.category] || 0) + 1;
         });
@@ -219,7 +242,7 @@ export default function Profile() {
             topCategory,
             peakWeekCount,
         };
-    }, [profileData]);
+    }, [profileData, activePosts]);
 
     if (loading) {
         return <div className="text-center py-12 text-foreground-muted animate-pulse">Loading profile...</div>;
@@ -661,9 +684,9 @@ export default function Profile() {
             <div className="grid md:grid-cols-2 gap-6">
                 <section className="space-y-4">
                     <h2 className="text-xl font-bold text-foreground border-b border-border-subtle pb-3">Activity</h2>
-                    {profileData.posts && profileData.posts.length > 0 ? (
+                    {sortedPosts.length > 0 ? (
                         <div className="space-y-3">
-                            {profileData.posts.map(post => (
+                            {sortedPosts.map(post => (
                                 <Link
                                     key={post.id}
                                     to={`/posts/${post.id}`}
@@ -691,9 +714,9 @@ export default function Profile() {
 
                 <section className="space-y-4">
                     <h2 className="text-xl font-bold text-foreground border-b border-border-subtle pb-3">Recent Comments</h2>
-                    {profileData.comments && profileData.comments.length > 0 ? (
+                    {sortedComments.length > 0 ? (
                         <div className="space-y-3">
-                            {profileData.comments.map(comment => (
+                            {sortedComments.map(comment => (
                                 <Link
                                     key={comment.id}
                                     to={`/posts/${comment.post_id}`}
