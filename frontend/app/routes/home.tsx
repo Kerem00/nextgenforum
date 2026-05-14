@@ -826,7 +826,7 @@ export default function Home() {
         )}
 
         {/* ── Trending This Week Widget ── */}
-        {(trendingLoading || trendingPosts.length >= 3) && (
+        {(trendingLoading || trendingPosts.length > 0) && (
           <div className="card-surface rounded-xl border border-border-subtle border-l-4 border-l-brand/40 shadow-sm p-4"
             style={{ animation: "fadeInUp 0.3s ease-out 300ms both" }}>
             <WidgetHeading>
