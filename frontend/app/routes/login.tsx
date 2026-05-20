@@ -46,7 +46,7 @@ export default function Login() {
     };
 
     return (
-        <div className="max-w-md mx-auto mt-12 bg-surface p-8 rounded-2xl shadow-sm border border-border-subtle">
+        <div className="max-w-md mx-auto mt-8 sm:mt-12 bg-surface p-6 sm:p-8 rounded-2xl shadow-sm border border-border-subtle">
             <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
                 <p className="text-foreground-muted mt-2">Enter your credentials to access your account</p>

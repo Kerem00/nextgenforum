@@ -422,7 +422,7 @@ export default function Home() {
   return (
     <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 items-start">
       {/* ─── LEFT COLUMN ─── */}
-      <div className="flex-1 min-w-0 space-y-5">
+      <div className="flex-1 min-w-0 w-full space-y-5">
 
         {showWelcome && !user && (
           <div className="relative rounded-2xl bg-gradient-to-br from-brand-subtle via-transparent to-transparent border border-brand/20 p-6 mb-4 page-enter overflow-hidden">
@@ -460,15 +460,15 @@ export default function Home() {
         )}
 
         {/* ── Page Header ── */}
-        <div className="rounded-2xl bg-gradient-to-br from-brand/5 to-transparent p-6 -mx-2 flex flex-col md:flex-row md:items-center justify-between gap-4"
+        <div className="rounded-2xl bg-gradient-to-br from-brand/5 to-transparent p-4 sm:p-6 -mx-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
           style={{ animation: "fadeInUp 0.3s ease-out both" }}>
           {searchQuery ? (
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-                  Search results for <span className="text-brand">"{searchQuery}"</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                  Results for <span className="text-brand break-all">"{searchQuery}"</span>
                 </h1>
-                <button onClick={clearSearch} className="p-1.5 rounded-lg hover:bg-surface-hover text-foreground-muted hover:text-foreground transition-colors cursor-pointer" title="Clear search">
+                <button onClick={clearSearch} className="p-1.5 rounded-lg hover:bg-surface-hover text-foreground-muted hover:text-foreground transition-colors cursor-pointer flex-shrink-0" title="Clear search">
                   <svg className="w-5 h-5" {...svgBase}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                 </button>
               </div>
@@ -476,16 +476,16 @@ export default function Home() {
             </div>
           ) : (
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Discussions</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">Discussions</h1>
               <p className="text-sm text-foreground-muted mt-1">
                 {posts.length} posts across {categories.length} categories
               </p>
             </div>
           )}
 
-          {/* Sort + View toggles moved to header */}
+          {/* Sort + View toggles */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <CustomSelect value={sortFilter} onChange={(v) => { setSortFilter(v); setDisplayCount(10); }} options={sortOptions} className="w-40" />
+            <CustomSelect value={sortFilter} onChange={(v) => { setSortFilter(v); setDisplayCount(10); }} options={sortOptions} className="w-36 sm:w-40" />
             <div className="flex items-center bg-surface border border-border-subtle rounded-lg overflow-hidden">
               <button onClick={() => setViewMode("list")} title="List view"
                 className={`p-1.5 transition-colors cursor-pointer ${viewMode === "list" ? "bg-brand/10 text-brand" : "text-foreground-muted hover:text-foreground"}`}>
@@ -502,8 +502,8 @@ export default function Home() {
 
         {/* ── Category Tab Bar ── */}
         <div className="space-y-3">
-          <div className="flex items-center">
-            <div ref={tabBarRef} className="flex-1 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center min-w-0">
+            <div ref={tabBarRef} className="flex-1 overflow-x-auto scrollbar-hide min-w-0">
               <div className="flex items-center gap-2 pb-1">
                 {/* All tab */}
                 <button
@@ -576,7 +576,7 @@ export default function Home() {
                   <MarkdownTextarea placeholder="What's on your mind? (Markdown Supported)" value={newContent} onValueChange={setNewContent}
                     onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); if (!newContent.trim() || submitting) return; handleCreatePost(e as unknown as React.FormEvent); } }}
                     required />
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                     <p className="text-xs text-foreground-muted">Markdown supported &middot; Ctrl+Enter to submit</p>
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={() => setIsFormOpen(false)} className="text-sm text-foreground-muted hover:text-foreground px-3 py-1.5 rounded-lg transition-colors cursor-pointer">Cancel</button>
@@ -625,22 +625,22 @@ export default function Home() {
                   <Link key={post.id} to={`/posts/${post.id}`} className="block group"
                     onClick={() => localStorage.setItem("ngf_last_read", JSON.stringify({ postId: post.id, title: post.title, category: post.category, timestamp: Date.now() }))}
                     style={{ animation: `fadeInUp 0.3s ease-out ${index * 40}ms both` }}>
-                    <div className={`flex items-center gap-3 card-surface hover-shadow-brand rounded-lg border py-3 px-4 shadow-sm hover:shadow-lg transition-all duration-200 group-hover:-translate-y-0.5 border-l-4 ${
+                    <div className={`flex items-center gap-2 sm:gap-3 card-surface hover-shadow-brand rounded-lg border py-2.5 px-3 sm:px-4 shadow-sm hover:shadow-lg transition-all duration-200 group-hover:-translate-y-0.5 border-l-4 ${
                       isSolved ? "border-green-500/50 border-l-green-500" : "border-border-subtle"
                     }`}>
                       <CategoryIcon name={catConf?.icon || "message-square"} className="w-4 h-4 text-foreground-muted flex-shrink-0" />
-                      <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition-colors truncate flex-1 leading-snug">
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-brand transition-colors truncate flex-1 min-w-0 leading-snug">
                         {isHot && <FlameIcon className="w-3.5 h-3.5 inline text-orange-400 mr-1" />}
                         {post.title}
                       </h3>
                       {isSolved && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex-shrink-0">
+                        <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex-shrink-0">
                           <CheckCircleIcon className="w-3 h-3" />Solved
                         </span>
                       )}
-                      <span className="text-xs text-foreground-muted capitalize whitespace-nowrap">{post.category}</span>
-                      <span className="text-xs text-foreground-muted whitespace-nowrap">{timeAgo(post.created_at)}</span>
-                      <div className="flex items-center gap-3 text-xs text-foreground-muted flex-shrink-0">
+                      <span className="hidden sm:block text-xs text-foreground-muted capitalize whitespace-nowrap">{post.category}</span>
+                      <span className="hidden xs:block text-xs text-foreground-muted whitespace-nowrap">{timeAgo(post.created_at)}</span>
+                      <div className="flex items-center gap-2 sm:gap-3 text-xs text-foreground-muted flex-shrink-0">
                         <span className="flex items-center gap-1"><CommentIcon className="w-3.5 h-3.5" />{post.comment_count || 0}</span>
                         <span className="flex items-center gap-1">
                           <HeartIcon className="w-3.5 h-3.5" filled={(post.likes?.length || 0) > 0} />{post.likes?.length || 0}
@@ -702,7 +702,7 @@ export default function Home() {
                         </div>
                       )}
                       {/* Top row */}
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap pr-10 sm:pr-14">
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-border-subtle/50 text-foreground-muted capitalize">
                           <CategoryIcon name={catConf?.icon || "message-square"} className="w-3 h-3" />
                           {post.category}
@@ -724,22 +724,22 @@ export default function Home() {
                         )}
                       </div>
                       {/* Title */}
-                      <h3 className="text-lg font-bold leading-snug text-foreground group-hover:text-brand transition-colors line-clamp-2">
+                      <h3 className="text-lg font-bold leading-snug text-foreground group-hover:text-brand transition-colors line-clamp-2 pr-10 sm:pr-14 break-words">
                         {isHot && <FlameIcon className="w-4 h-4 inline text-orange-400 mr-1" />}
                         {post.title}
                       </h3>
                       {/* Content preview */}
-                      <p className="text-sm text-foreground-muted line-clamp-2 mt-1">{stripMarkdown(post.content)}</p>
+                      <p className="text-sm text-foreground-muted line-clamp-2 mt-1 break-words">{stripMarkdown(post.content)}</p>
                       {/* Bottom row */}
-                      <div className="mt-3 flex items-center text-sm text-foreground-muted">
+                      <div className="mt-3 flex items-center flex-wrap gap-y-1 text-sm text-foreground-muted">
                         <div className="flex items-center gap-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/users/${post.owner_id}`); }}>
                           <div className={`w-6 h-6 rounded-full ${hashColor(post.owner.username)} flex items-center justify-center font-bold text-xs text-white uppercase`}>
                             {post.owner.username.charAt(0)}
                           </div>
-                          <span className="truncate max-w-[120px] hover:text-brand transition-colors cursor-pointer">{post.owner.username}</span>
+                          <span className="truncate max-w-[100px] sm:max-w-[120px] hover:text-brand transition-colors cursor-pointer">{post.owner.username}</span>
                         </div>
                         <div className="flex-1" />
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
                           <div className="flex items-center gap-1.5"><CommentIcon className="w-4 h-4" /><span className="font-medium">{post.comment_count || 0}</span></div>
                           <div className="flex items-center gap-1.5">
                             <HeartIcon className="w-4 h-4" filled={(post.likes?.length || 0) > 0} />

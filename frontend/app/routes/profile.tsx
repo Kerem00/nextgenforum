@@ -117,7 +117,7 @@ export default function Profile() {
 
     // Only consider active/solved posts — filter out banned/pending/deleted
     const activePosts = useMemo(() =>
-        (profileData?.posts || []).filter(p => p.status === "active" || p.status === "solved"),
+        (profileData?.posts || []).filter((p: any) => p.status === "active" || p.status === "solved"),
         [profileData?.posts]
     );
 
@@ -276,7 +276,7 @@ export default function Profile() {
                         {profileData.username?.charAt(0).toUpperCase()}
                     </div>
 
-                    <h1 className="text-3xl font-extrabold text-foreground flex items-center flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground flex items-center flex-wrap">
                         {profileData.username}
                         {accentColor && (
                             <span
@@ -413,19 +413,19 @@ export default function Profile() {
             </Card>
 
             {/* Stats Bar Section */}
-            <Card padding="p-6" className="shadow-sm flex items-center justify-around text-center">
+                <Card padding="p-4 sm:p-6" className="shadow-sm flex items-center justify-around text-center">
                 <div className="flex flex-col flex-1">
-                    <span className="text-3xl font-black text-foreground mb-1">{profileData.posts?.length || 0}</span>
+                    <span className="text-2xl sm:text-3xl font-black text-foreground mb-1">{profileData.posts?.length || 0}</span>
                     <span className="text-xs text-foreground-muted uppercase tracking-widest font-bold">Posts</span>
                 </div>
-                <div className="w-px h-12 bg-border-subtle"></div>
+                <div className="w-px h-10 sm:h-12 bg-border-subtle"></div>
                 <div className="flex flex-col flex-1">
-                    <span className="text-3xl font-black text-foreground mb-1">{profileData.comments?.length || 0}</span>
+                    <span className="text-2xl sm:text-3xl font-black text-foreground mb-1">{profileData.comments?.length || 0}</span>
                     <span className="text-xs text-foreground-muted uppercase tracking-widest font-bold">Comments</span>
                 </div>
-                <div className="w-px h-12 bg-border-subtle"></div>
+                <div className="w-px h-10 sm:h-12 bg-border-subtle"></div>
                 <div className="flex flex-col flex-1">
-                    <span className="text-3xl font-black text-brand mb-1">{totalLikes}</span>
+                    <span className="text-2xl sm:text-3xl font-black text-brand mb-1">{totalLikes}</span>
                     <span className="text-xs text-foreground-muted uppercase tracking-widest font-bold">Likes <span className="hidden sm:inline">Received</span></span>
                 </div>
             </Card>
@@ -433,7 +433,7 @@ export default function Profile() {
             {/* Heatmap Section */}
             {profileData && (isCurrentUser || (profileMeta.privacy?.showActivity ?? true)) && (
                 <div className="bg-surface rounded-2xl border border-border-subtle
-                                p-6 shadow-sm relative overflow-hidden animate-[fadeIn_0.4s_ease-out]">
+                                p-4 sm:p-6 shadow-sm relative overflow-hidden animate-[fadeIn_0.4s_ease-out]">
                     <div className="flex items-center justify-between mb-5">
                         <h2 className="font-display text-base font-bold text-foreground
                                        flex items-center gap-2">

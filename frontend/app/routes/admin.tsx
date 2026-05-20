@@ -65,6 +65,7 @@ export default function Admin() {
     const navigate = useNavigate();
 
     const [activePage, setActivePage] = useState<"overview" | "users" | "posts" | "moderation" | "automod" | "logs" | "approval_queue">("overview");
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Overview state
     const [stats, setStats] = useState<Stats | null>(null);
@@ -346,8 +347,21 @@ export default function Admin() {
 
     return (
         <div className="flex min-h-[calc(100vh-8rem)] overflow-hidden border-x border-border-subtle w-[100vw] max-w-none relative left-[50%] right-[50%] -ml-[50vw] -mr-[50vw] -my-8">
+            {/* Mobile overlay backdrop */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <aside className="w-64 bg-gray-900 text-white flex-shrink-0 flex flex-col">
+            <aside className={`
+                fixed lg:relative inset-y-0 left-0 z-40
+                w-64 bg-gray-900 text-white flex-shrink-0 flex flex-col
+                transition-transform duration-300 ease-in-out
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}>
                 <div className="px-6 py-6 border-b border-white/10">
                     <h1 className="text-xl font-bold tracking-tight">
                         NextGen<span className="text-gray-400 font-medium">Forum</span>
@@ -359,7 +373,7 @@ export default function Admin() {
                     {navItems.map(item => (
                         <button
                             key={item.key}
-                            onClick={() => setActivePage(item.key)}
+                            onClick={() => { setActivePage(item.key); setIsSidebarOpen(false); }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                                 activePage === item.key
                                     ? "bg-white/10 text-white border-l-2 border-blue-400"
@@ -384,7 +398,23 @@ export default function Admin() {
             </aside>
 
             {/* Content */}
-            <main className="flex-1 bg-background p-8 overflow-auto">
+            <main className="flex-1 bg-background overflow-auto min-w-0">
+                {/* Mobile header bar */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle lg:hidden sticky top-0 bg-background z-20">
+                    <button
+                        onClick={() => setIsSidebarOpen(true)}
+                        className="p-2 rounded-lg hover:bg-surface-hover text-foreground-muted hover:text-foreground transition-colors cursor-pointer"
+                        aria-label="Open menu"
+                    >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                    <span className="font-bold text-foreground capitalize">{activePage.replace('_', ' ')}</span>
+                </div>
+                <div className="p-4 sm:p-8">
                 {activePage === "overview" && (
                     <div className="space-y-8 w-full">
                         <div>
@@ -393,7 +423,7 @@ export default function Admin() {
                         </div>
 
                         {statsLoading ? (
-                            <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {[...Array(4)].map((_, i) => (
                                     <Card key={i} padding="p-6" className="animate-pulse">
                                         <div className="h-4 w-20 bg-border-subtle rounded mb-3"></div>
@@ -403,7 +433,7 @@ export default function Admin() {
                             </div>
                         ) : stats ? (
                             <>
-                                <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <StatCard label="Total Posts" value={stats.total_posts} icon={
                                         <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                                     } />
@@ -434,7 +464,7 @@ export default function Admin() {
 
                 {activePage === "users" && (
                     <div className="space-y-6 w-full">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-2xl font-bold text-foreground">Users</h2>
                                 <p className="text-sm text-foreground-muted mt-1">Manage forum members</p>
@@ -445,7 +475,7 @@ export default function Admin() {
                                     placeholder="Search users..."
                                     value={userSearch}
                                     onChange={(e) => setUserSearch(e.target.value)}
-                                    className="w-64 px-4 py-2 pl-10 bg-surface border border-border-subtle rounded-lg text-sm text-foreground placeholder-[var(--theme-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-brand"
+                                    className="w-full sm:w-64 px-4 py-2 pl-10 bg-surface border border-border-subtle rounded-lg text-sm text-foreground placeholder-[var(--theme-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-brand"
                                 />
                                 <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                             </div>
@@ -465,7 +495,8 @@ export default function Admin() {
                             </Card>
                         ) : (
                             <Card padding="p-0" className="overflow-hidden">
-                                <table className="w-full text-sm">
+                                <div className="overflow-x-auto">
+                                <table className="w-full text-sm min-w-[600px]">
                                     <thead>
                                         <tr className="border-b border-border-subtle bg-background/50">
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">User</th>
@@ -535,6 +566,7 @@ export default function Admin() {
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                                 {filteredUsers.length === 0 && (
                                     <div className="text-center py-8 text-foreground-muted text-sm">No users found.</div>
                                 )}
@@ -563,7 +595,8 @@ export default function Admin() {
                             </Card>
                         ) : (
                             <Card padding="p-0" className="overflow-hidden">
-                                <table className="w-full text-sm">
+                                <div className="overflow-x-auto">
+                                <table className="w-full text-sm min-w-[600px]">
                                     <thead>
                                         <tr className="border-b border-border-subtle bg-background/50">
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Title</th>
@@ -618,6 +651,7 @@ export default function Admin() {
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                                 {posts.length === 0 && (
                                     <div className="text-center py-8 text-foreground-muted text-sm">No posts yet.</div>
                                 )}
@@ -627,7 +661,7 @@ export default function Admin() {
                 )}
                 {activePage === "moderation" && (
                     <div className="space-y-6 w-full">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-2xl font-bold text-foreground">Moderation Reports</h2>
                                 <p className="text-sm text-foreground-muted mt-1">Review and act on content flags</p>
@@ -638,14 +672,15 @@ export default function Admin() {
                                     placeholder="Search by Report ID..."
                                     value={reportSearch}
                                     onChange={(e) => setReportSearch(e.target.value)}
-                                    className="w-64 px-4 py-2 pl-10 bg-surface border border-border-subtle rounded-lg text-sm text-foreground placeholder-[var(--theme-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-brand"
+                                    className="w-full sm:w-64 px-4 py-2 pl-10 bg-surface border border-border-subtle rounded-lg text-sm text-foreground placeholder-[var(--theme-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-brand"
                                 />
                                 <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                             </div>
                         </div>
 
                         <Card padding="p-0" className="overflow-hidden">
-                            <table className="w-full text-sm">
+                            <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[480px]">
                                 <thead>
                                     <tr className="border-b border-border-subtle bg-background/50">
                                         <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Report ID</th>
@@ -673,6 +708,7 @@ export default function Admin() {
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                             {filteredReports.length === 0 && (
                                 <div className="text-center py-12 text-foreground-muted flex flex-col items-center">
                                     <svg className="w-12 h-12 mb-4 text-border-subtle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -828,7 +864,8 @@ export default function Admin() {
                         </div>
 
                         <Card padding="p-0" className="overflow-hidden">
-                            <table className="w-full text-sm">
+                            <div className="overflow-x-auto">
+                            <table className="w-full text-sm min-w-[560px]">
                                 <thead>
                                     <tr className="border-b border-border-subtle bg-background/50">
                                         <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Log ID</th>
@@ -879,6 +916,7 @@ export default function Admin() {
                                     })}
                                 </tbody>
                             </table>
+                            </div>
                             {filteredLogs.length === 0 && (
                                 <div className="text-center py-12 text-foreground-muted">
                                     <p className="text-sm font-medium">No logs found for this category</p>
@@ -906,7 +944,8 @@ export default function Admin() {
                             </Card>
                         ) : (
                             <Card padding="p-0" className="overflow-hidden">
-                                <table className="w-full text-sm">
+                                <div className="overflow-x-auto">
+                                <table className="w-full text-sm min-w-[500px]">
                                     <thead>
                                         <tr className="border-b border-border-subtle bg-background/50">
                                             <th className="text-left px-6 py-3 font-medium text-foreground-muted text-xs uppercase tracking-wider">Title</th>
@@ -934,6 +973,7 @@ export default function Admin() {
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                                 {pendingPosts.length === 0 && (
                                     <div className="text-center py-8 text-foreground-muted text-sm">Queue is empty.</div>
                                 )}
@@ -941,6 +981,7 @@ export default function Admin() {
                         )}
                     </div>
                 )}
+                </div>
             </main>
             {editingPendingPost && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

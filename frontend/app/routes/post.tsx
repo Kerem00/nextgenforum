@@ -822,7 +822,7 @@ export default function PostDetail() {
                         </>
                     )}
 
-                    <div className="flex items-center justify-start gap-4 mt-8 border-t border-border-subtle pt-6">
+                    <div className="flex items-center flex-wrap gap-2 mt-8 border-t border-border-subtle pt-6">
                         {user ? (
                             <>
                                 <button
@@ -867,7 +867,7 @@ export default function PostDetail() {
                                     <button
                                         onClick={handleSolvePost}
                                         disabled={solvingPost}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ml-auto ${
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all duration-300 cursor-pointer text-sm ${
                                             post.status === 'solved'
                                                 ? 'bg-green-500/10 border-green-500/50 text-green-600 dark:text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)] scale-105'
                                                 : 'bg-background border-border-subtle text-foreground hover:bg-green-500/5 hover:border-green-500/40 hover:text-green-600'
@@ -943,8 +943,9 @@ export default function PostDetail() {
                                         }
                                     }}
                                 />
-                                <div className="flex justify-between items-center mt-2">
-                                    <p className="text-xs text-foreground-muted">Markdown supported · Ctrl+Enter to submit</p>
+                                <div className="flex justify-between items-center mt-2 gap-2">
+                                    <p className="text-xs text-foreground-muted hidden sm:block">Markdown supported · Ctrl+Enter to submit</p>
+                                    <p className="text-xs text-foreground-muted sm:hidden">Ctrl+Enter to submit</p>
                                     <button
                                         type="submit"
                                         disabled={submittingComment}
@@ -1056,9 +1057,9 @@ export default function PostDetail() {
                                         {comment.owner.username.charAt(0)}
                                     </div>
                                     <div className="flex-1">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                {comment.owner.role === 'automod' ? (
+                                        <div className="flex justify-between items-start mb-1 gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                                {(comment.owner as any).role === 'automod' ? (
                                                     <span className="font-medium text-green-500 dark:text-green-400 text-sm">
                                                         {comment.owner.username}
                                                     </span>

@@ -372,7 +372,7 @@ export default function EditProfile() {
         </nav>
 
         {/* ── Right content panel */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <div className="flex-1 min-w-0 w-full space-y-6">
 
           {/* ════════════════════════════════════
               PROFILE TAB

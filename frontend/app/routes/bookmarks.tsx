@@ -156,7 +156,7 @@ export default function Bookmarks() {
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeBookmark(post.id); }}
                 className="absolute top-3 right-3 p-1.5 rounded-lg
                            text-brand bg-brand-subtle press-effect
-                           opacity-0 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 opacity-100
+                           opacity-100 sm:opacity-0 sm:group-hover:opacity-100
                            transition-all duration-200 cursor-pointer"
                 title="Remove bookmark"
               >
