@@ -3,9 +3,10 @@ import asyncio
 import json
 from sqlalchemy.future import select
 from sqlalchemy.dialects.postgresql import insert
-from . import database, models
+import database, models
+import os
 
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
 async def process_message(message: aio_pika.IncomingMessage):
     async with message.process():

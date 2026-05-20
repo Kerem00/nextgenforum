@@ -1,8 +1,8 @@
 import axios from "axios";
 
 // Defaults for local development if environment variables are not set
-const USERS_API_URL = import.meta.env.VITE_USERS_API_URL || "http://localhost:8001";
-const POSTS_API_URL = import.meta.env.VITE_POSTS_API_URL || "http://localhost:8002";
+const USERS_API_URL = import.meta.env.VITE_USERS_API_URL || "https://users.nextgenforum.tech";
+const POSTS_API_URL = import.meta.env.VITE_POSTS_API_URL || "https://posts.nextgenforum.tech";
 
 export const usersClient = axios.create({
     baseURL: USERS_API_URL,
