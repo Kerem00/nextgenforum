@@ -28,6 +28,13 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+export const meta: Route.MetaFunction = () => {
+  return [
+    { title: "NextGenForum" },
+    { name: "description", content: "Welcome to NextGenForum!" },
+  ];
+};
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
