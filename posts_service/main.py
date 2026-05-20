@@ -260,7 +260,7 @@ async def get_posts(
     if search:
         query = query.where(models.Post.title.ilike(f"%{search}%"))
     if category and category != "all":
-        query = query.where(models.Post.category == category)
+        query = query.where(models.Post.category.ilike(category))
         
     if sort == "weekly_top":
         one_week_ago = datetime.now() - timedelta(days=7)
