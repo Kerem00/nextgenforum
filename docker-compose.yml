@@ -2,7 +2,6 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
-    restart: unless-stopped
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -18,7 +17,6 @@ services:
   users_db:
     image: postgres:15
     container_name: users_db
-    restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -36,7 +34,6 @@ services:
   posts_db:
     image: postgres:15
     container_name: posts_db
-    restart: unless-stopped
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -60,7 +57,6 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@posts_db:5432/posts_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-    restart: unless-stopped
     depends_on:
       posts_db:
         condition: service_healthy
@@ -76,7 +72,6 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://user:password@users_db:5432/users_db
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-    restart: unless-stopped
     depends_on:
       users_db:
         condition: service_healthy
@@ -91,7 +86,6 @@ services:
     container_name: frontend
     ports:
       - "3000:3000"
-    restart: unless-stopped
     depends_on:
       users_service:
         condition: service_started
@@ -104,7 +98,6 @@ services:
     command: tunnel run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-    restart: unless-stopped
 
 volumes:
   users_db_data:
