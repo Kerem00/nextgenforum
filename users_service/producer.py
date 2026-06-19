@@ -1,8 +1,9 @@
 import aio_pika
 import json
 import asyncio
+import os
 
-RABBITMQ_URL = "amqp://guest:guest@localhost:5672/"
+RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 
 _connection = None
 _channel = None

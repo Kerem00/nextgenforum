@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordRequestForm
-from . import models, schemas, database, producer, auth
+import models, schemas, database, producer, auth
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -69,7 +69,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["https://nextgenforum.tech", "http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

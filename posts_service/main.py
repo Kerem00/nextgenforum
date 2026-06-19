@@ -6,9 +6,9 @@ import asyncio
 from typing import Annotated
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
-from . import models, schemas, database, consumer, auth
-from .ml_mod import ml_mod
-from .config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL, CATEGORIES
+import models, schemas, database, consumer, auth
+from ml_mod import ml_mod
+from config import CONFIDENCE_THRESHOLD, OLLAMA_URL, OLLAMA_MODEL, CATEGORIES
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
         pass
         print("Failed to add profile_meta column:", e)
     
-    from .config import AUTOMOD_USERNAME
+    from config import AUTOMOD_USERNAME
     async with database.AsyncSessionLocal() as db:
         res = await db.execute(select(models.User).where(models.User.username == AUTOMOD_USERNAME))
         am_user = res.scalar_one_or_none()
@@ -140,7 +140,7 @@ async def run_ai_assist(post_id: int):
 
 async def auto_check(db: AsyncSession, entity_type: str, entity_id: int, content: str):
     if entity_type == "comment":
-        from .config import ACTIVE_MODEL
+        from config import ACTIVE_MODEL
         if ACTIVE_MODEL == "off":
             return
             
@@ -204,7 +204,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=["https://nextgenforum.tech", "http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -260,7 +260,7 @@ async def get_posts(
     if search:
         query = query.where(models.Post.title.ilike(f"%{search}%"))
     if category and category != "all":
-        query = query.where(models.Post.category == category)
+        query = query.where(models.Post.category.ilike(category))
         
     if sort == "weekly_top":
         one_week_ago = datetime.now() - timedelta(days=7)
@@ -829,7 +829,7 @@ async def get_automod_models(
     current_user: Annotated[auth.TokenData, Depends(auth.require_admin)]
 ):
     try:
-        from .config import OLLAMA_URL
+        from config import OLLAMA_URL
         base_url = OLLAMA_URL.rsplit('/', 1)[0]
         tags_url = f"{base_url}/tags"
         async with httpx.AsyncClient(timeout=10.0) as client:
